@@ -187,7 +187,7 @@ async function handleSystemScopes(verifiedJWT, requestedPatient, policy, tenantC
   //If we have system/patient.s (or system/Patient.read in v1), then we allow access to the patient match function.
   if(verifiedJWT.body.scope.includes('system/Patient.read')) {
     console.log("Adding in the patient match scope.")
-    policy.allowMethod(AuthPolicy.HttpVerb.POST, "/Patient/$match");
+    policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/*match");
   }
 
   //If we have system/Patient.read, then let's do our fine grained authz check.
