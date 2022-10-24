@@ -1,0 +1,139 @@
+# This is a reference example of a secured FHIR server using the latest HL7 implementation guides.
+#Deploy this before your desired authorization servers.
+
+service: secured-fhir-service
+
+plugins:
+  - serverless-certificate-creator
+  - serverless-domain-manager
+
+params:
+  default:
+    #The domain name you want publicly as the base domain name for the FHIR service.
+    FHIR_BASE_DOMAIN: fhir.your.tld
+
+    #Route53 hosted domain for FHIR service (include the period at the end)
+    FHIR_BASE_TLD: your.tld.
+
+    #Backend fhir service base FHIR_SERVICE_URL
+    BACKEND_FHIR_SERVICE_URL: http://your_fhir_base_url_here
+
+##Shouldn't have to touch anything below this line!##
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-east-1
+  stage: dev
+  logs:
+    restApi: true
+
+  environment:
+    FHIR_BASE_DOMAIN: ${param:FHIR_BASE_DOMAIN}
+
+#Lambda functions
+functions:
+##Authorizer
+  jwtAuthorizer:
+    handler: ${self:provider.name}/authorizer.handler
+
+##METADATA ENDPOINTS
+  smart-config-endpoint:
+    handler: ${self:provider.name}/metadata_endpoints.smartConfigHandler
+    events:
+      - http:
+          path: /{tenantId}/smart-configuration
+          method: GET
+          cors: true
+          request:
+            parameters:
+              paths:
+                tenantId: true
+      - http:
+          path: /{tenantId}/.well-known/smart-configuration
+          method: GET
+          cors: true
+          request:
+            parameters:
+              paths:
+                tenantId: true
+
+  metadata-endpoint:
+    handler: ${self:provider.name}/metadata_endpoints.legacyMetadataHandler
+    events:
+      - http:
+          path: /{tenantId}/metadata
+          method: GET
+          cors: true
+          request:
+            parameters:
+              paths:
+                tenantId: true
+
+  udap-config-endpoint:
+    handler: ${self:provider.name}/metadata_endpoints.udapConfigHandler
+    events:
+      - http:
+          path: /{tenantId}/.well-known/udap
+          method: GET
+          cors: true
+          request:
+            parameters:
+              paths:
+                tenantId: true
+
+
+
+#Patient match endpoint
+  patient-match-endpoint:
+    handler: ${self:provider.name}/match_operation.matchHandler
+    timeout: 30
+    events:
+      - http:
+          path: /{tenantId}/Patient/$match
+          method: POST
+          authorizer:
+            name: jwtAuthorizer
+            resultTtlInSeconds: 0
+            type: request
+          cors: false
+          request:
+            parameters:
+              paths:
+                tenantId: true
+
+#############
+#Proxy back to the real FHIR server.
+#############
+      - http:
+          path: /{tenantId}/{proxy+}
+          method: ANY
+          authorizer:
+            name: jwtAuthorizer
+            resultTtlInSeconds: 0
+            type: request
+          cors: true
+          integration: http-proxy
+          request:
+            uri: ${param:BACKEND_FHIR_SERVICE_URL}/{proxy}
+            parameters:
+              paths:
+                proxy: true
+                tenantId: true
+#################
+#END Proxy
+#################
+
+custom:
+  customCertificate:
+    certificateName: ${param:FHIR_BASE_DOMAIN}
+    hostedZoneNames: ${param:FHIR_BASE_TLD}
+    subjectAlternativeNames:
+      - ${param:FHIR_BASE_DOMAIN}
+
+  customDomain:
+    domainName: ${param:FHIR_BASE_DOMAIN}
+    certificateName: ${param:FHIR_BASE_DOMAIN}
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: regional

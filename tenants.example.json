@@ -1,0 +1,24 @@
+[
+  {
+    "id": "demo",
+
+    "issuer":"your_authz_issuer_uri_here",
+    "authorize_endpoint":"authz_authorize_endpoint_here",
+    "token_endpoint":"authz_token_endpoint_here",
+    "revoke_endpoint":"authz_revoke_endpoint_here",
+    "introspect_endpoint":"authz_introspect_endpoint_here_if_applicable",
+    "registration_endpoint":"authz_registration_endpoint_here_if_applicable",
+    "keys_endpoint":"authz_keys_endpoint_here",
+
+    "fga_enabled": "true_or_false",
+    "fga_environment": "us",
+    "fga_store_id": "fga_store_id",
+    "fga_client_id": "fga_client_id",
+    "fga_client_secret": "fga_client_secret",
+
+    "udap_enabled": "true_or_false",
+    "udap_pki_ca_cert_filename": "ca.crt",
+    "udap_pki_cert_filename": "server.crt",
+    "udap_pki_key_filename":"server.key"
+  }
+]
