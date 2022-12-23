@@ -62,11 +62,10 @@ module.exports.handler = async function(event, context) {
   //Our rules here below.
   //We're only enabling one type at a time.  Can't mix patient/user/system.
   //We'll do this by picking the most restrictive and allowing that.
-
-  if(verifiedJWT.body.scope.includes("patient/")) {
+  if(verifiedJWT.body.scope.filter(scope => scope.startsWith('patient/')).length > 0) {
     await handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
   }
-  else if(verifiedJWT.body.scope.includes("user/")) {
+  else if (verifiedJWT.body.scope.filter(scope => scope.startsWith('user/')).length > 0) {
     await handleUserScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
   }
   else {
@@ -83,9 +82,11 @@ module.exports.handler = async function(event, context) {
 async function handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
   if(verifiedJWT.body.launch_response_patient){
     if(verifiedJWT.body.scope.includes('patient/Patient.read') || verifiedJWT.body.scope.includes('patient/*.read')) {
+      console.log("Allowing GET access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
       policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
     }
     if(verifiedJWT.body.scope.includes('patient/Patient.write') || verifiedJWT.body.scope.includes('patient/*.write')) {
+      console.log("Allowing POST access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
       policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
       policy.allowMethod(AuthPolicy.HttpVerb.PUT, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
     }
