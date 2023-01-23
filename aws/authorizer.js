@@ -134,7 +134,9 @@ async function handleUserScopes(verifiedJWT, requestedPatient, policy, tenantCon
         }
       }
       else { //If we don't have FGA turned on then the fhirUser claim must have the patient in it.
-        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/" + verifiedJWT.body.fhirUser);
+        console.log("Coarse grained user access is configured.  Allowing access to:")
+        console.log("/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.fhirUser)
+        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.fhirUser);
       }
     }
   }
