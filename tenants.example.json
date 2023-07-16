@@ -18,7 +18,8 @@
 
     "udap_enabled": "true_or_false",
     "udap_pki_ca_cert_filename": "ca.crt",
-    "udap_pki_cert_filename": "server.crt",
-    "udap_pki_key_filename":"server.key"
+    "udap_pki_cert_filename": "server.p12",
+    "udap_pki_cert_filename_pwd": "pw to p12 file",
+    "udap_server_san" : "url to use for this server - must match base server url and be in cert SAN array"
   }
 ]

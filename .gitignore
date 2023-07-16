@@ -107,5 +107,11 @@ serverless.yml
 *.pem
 *.key
 *.crt
+*.p12
 tenants.json
 .DS_Store
+serverless-evernorth.yml
+serverless.tom.yml
+tenants.evernorth.json
+tenants.tom.json
+udap_pki/OktaPrivateKey.json
