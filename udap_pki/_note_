@@ -1,1 +1,1 @@
-This folder should contain your UDAP CA Certificate from the trust community you're participating in, as well as your server certificate as well as your server key.
+This folder should contain your UDAP CA Certificate from the trust community you're participating in, as well as a PKCS12 file containing your server certificate/key.
