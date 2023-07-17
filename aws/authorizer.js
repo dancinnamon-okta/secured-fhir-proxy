@@ -45,7 +45,8 @@ module.exports.handler = async function(event, context) {
 
   //Audience Check
   const expectedAud = "https://" + process.env.FHIR_BASE_DOMAIN + "/" + event.pathParameters.tenantId
-  if(!verifiedJWT.body.aud.startsWith(expectedAud)) {
+  const validAudience = (Array.isArray(verifiedJWT.body.aud) && verifiedJWT.body.aud.includes(expectedAud)) || (verifiedJWT.body.aud.startsWith(expectedAud))
+  if(!validAudience) {
     console.log("The JWT passed in has an incorrect audience.")
     console.log("Expected: " + expectedAud)
     console.log("Actual: " + verifiedJWT.body.aud)
@@ -62,10 +63,11 @@ module.exports.handler = async function(event, context) {
   //Our rules here below.
   //We're only enabling one type at a time.  Can't mix patient/user/system.
   //We'll do this by picking the most restrictive and allowing that.
-  if(verifiedJWT.body.scope.filter(scope => scope.startsWith('patient/')).length > 0) {
+  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
+  if(scopesArray.filter(scope => scope.startsWith('patient/')).length > 0) {
     await handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
   }
-  else if (verifiedJWT.body.scope.filter(scope => scope.startsWith('user/')).length > 0) {
+  else if (scopesArray.filter(scope => scope.startsWith('user/')).length > 0) {
     await handleUserScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
   }
   else {
@@ -80,12 +82,13 @@ module.exports.handler = async function(event, context) {
 }
 
 async function handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
+  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
   if(verifiedJWT.body.launch_response_patient){
-    if(verifiedJWT.body.scope.includes('patient/Patient.read') || verifiedJWT.body.scope.includes('patient/*.read')) {
+    if(scopesArray.includes('patient/Patient.read') || scopesArray.includes('patient/*.read')) {
       console.log("Allowing GET access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
       policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
     }
-    if(verifiedJWT.body.scope.includes('patient/Patient.write') || verifiedJWT.body.scope.includes('patient/*.write')) {
+    if(scopesArray.includes('patient/Patient.write') || scopesArray.includes('patient/*.write')) {
       console.log("Allowing POST access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
       policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
       policy.allowMethod(AuthPolicy.HttpVerb.PUT, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
@@ -97,11 +100,11 @@ async function handleUserScopes(verifiedJWT, requestedPatient, policy, tenantCon
   console.log("Handling user scopes.")
   console.log("Requested Patient: " + requestedPatient)
   console.log("Requested scopes: " + verifiedJWT.body.scope)
-
+  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
   //Read access
   //With FGA, we'll do a relationship lookup
   //Without FGA, we'll just allow for the user to see themselves (fhirUser claim)
-  if(verifiedJWT.body.scope.includes('user/Patient.read') || verifiedJWT.body.scope.includes('user/*.read')) {
+  if(scopesArray.includes('user/Patient.read') || scopesArray.includes('user/*.read')) {
     //We need to get the patient id from the request, not from the JWT.
     if(requestedPatient) {
       if(tenantConfig.fga_enabled === "true") {
@@ -144,7 +147,7 @@ async function handleUserScopes(verifiedJWT, requestedPatient, policy, tenantCon
   //write access
   //With FGA, we'll do a relationship lookup
   //Without FGA, we'll just allow for the user to see themselves (fhirUser claim)
-  if(verifiedJWT.body.scope.includes('user/Patient.write') || verifiedJWT.body.scope.includes('user/*.write')) {
+  if(scopesArray.includes('user/Patient.write') || scopesArray.includes('user/*.write')) {
     //We need to get the patient id from the request, not from the JWT.
     if(requestedPatient) {
       if(tenantConfig.fga_enabled === "true") {
@@ -186,15 +189,15 @@ async function handleUserScopes(verifiedJWT, requestedPatient, policy, tenantCon
 }
 
 async function handleSystemScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
-
+  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
   //If we have system/patient.s (or system/Patient.read in v1), then we allow access to the patient match function.
-  if(verifiedJWT.body.scope.includes('system/Patient.read')) {
+  if(scopesArray.includes('system/Patient.read')) {
     console.log("Adding in the patient match scope.")
     policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/*match");
   }
 
   //If we have system/Patient.read, then let's do our fine grained authz check.
-  if(verifiedJWT.body.scope.includes('system/Patient.read') || verifiedJWT.body.scope.includes('system/*.read')) {
+  if(scopesArray.includes('system/Patient.read') || scopesArray.includes('system/*.read')) {
 
     if(requestedPatient) {
       if(tenantConfig.fga_enabled === "true") {
@@ -234,7 +237,7 @@ async function handleSystemScopes(verifiedJWT, requestedPatient, policy, tenantC
     }
   }
 
-  if(verifiedJWT.body.scope.includes('system/Patient.write') || verifiedJWT.body.scope.includes('system/*.write')) {
+  if(scopesArray.includes('system/Patient.write') || scopesArray.includes('system/*.write')) {
 
     if(requestedPatient) {
       console.log("Performing a fine grained access check")
