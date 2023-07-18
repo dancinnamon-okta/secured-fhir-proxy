@@ -8,6 +8,7 @@ const axios = require('axios');
 const jwk2pem = require('pem-jwk').jwk2pem
 const { Auth0FgaApi } = require('@auth0/fga');
 const TenantConfig = require('../lib/tenant_config.js')
+const scopeProcessor = require('./scope_processor')
 
 module.exports.handler = async function(event, context) {
   //Parse out the inbound request to get what we need for validation and output.
@@ -16,21 +17,27 @@ module.exports.handler = async function(event, context) {
   console.log(context)
   const tenantConfig = TenantConfig.getTenantConfig(event.pathParameters.tenantId)
   const arnParts = event.methodArn.split(':');
+
+  //We need the details of the API gateway to create/deny access.
   const apiGatewayArnPart = arnParts[5].split('/');
   const awsAccountId = arnParts[4];
   apiOptions.region = arnParts[3];
   apiOptions.restApiId = apiGatewayArnPart[0];
   apiOptions.stage = apiGatewayArnPart[1];
-  const method = apiGatewayArnPart[2];
-  const requestedPatient = apiGatewayArnPart[apiGatewayArnPart.length - 1];
 
+  //Details about the request.
+  const httpMethod = event.requestContext.httpMethod
+  const fhirResourcePath = event.pathParameters.proxy.split('/')
+  const fhirResourceType = fhirResourcePath[0]
+  const fhirResourceId = (fhirResourcePath.length > 1) ? fhirResourcePath[1] : null
+  
   //First token validation.
   var verifiedJWT = null;
 
   try {
     var key = await getSigningKey(tenantConfig.keys_endpoint)
-    var arr = event.headers.Authorization.split(" ");
-    var access_token = arr[1];
+    var authZHeader = event.headers.Authorization.split(" ");
+    var access_token = authZHeader[1];
 
     var signingKeyPem = jwk2pem(key)
     verifiedJWT = njwt.verify(access_token, signingKeyPem, "RS256")
@@ -56,22 +63,36 @@ module.exports.handler = async function(event, context) {
     return context.succeed(failPolicy.build());
   }
 
-  //JWT is validated. Let's go one level lower. This is really only setup for patient reading right now.
+  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
+
+  //Coarse grained scope check
+  if(!scopeProcessor.authorizeScopeForResourceAndMethod(fhirResourceType, fhirResourceId, httpMethod, scopesArray)) {
+    console.log("The JWT passed in does not have the proper scopes to make the request")
+    console.log("FHIR Resource Type: " + fhirResourceType)
+    console.log("FHIR Resource ID: " + fhirResourceId)
+    console.log("HTTP Method: " + httpMethod)
+    console.log("Scopes: " + verifiedJWT.body.scope)
+
+    const failPolicy = new AuthPolicy('none', awsAccountId, apiOptions);
+    failPolicy.denyAllMethods()
+    return context.succeed(failPolicy.build());
+  }
+
+  //Resource level checks
   //Define our policy header.
   const policy = new AuthPolicy(verifiedJWT.body.sub, awsAccountId, apiOptions);
 
   //Our rules here below.
   //We're only enabling one type at a time.  Can't mix patient/user/system.
   //We'll do this by picking the most restrictive and allowing that.
-  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
   if(scopesArray.filter(scope => scope.startsWith('patient/')).length > 0) {
-    await handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
+    await handlePatientScopes(verifiedJWT, httpMethod, policy, tenantConfig)
   }
   else if (scopesArray.filter(scope => scope.startsWith('user/')).length > 0) {
-    await handleUserScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
+    await handleUserScopes(verifiedJWT, httpMethod, policy, tenantConfig)
   }
   else {
-    await handleSystemScopes(verifiedJWT, requestedPatient, policy, tenantConfig)
+    await handleSystemScopes(verifiedJWT, httpMethod, policy, tenantConfig)
   }
 
   if(policy.allowMethods.length == 0) {
@@ -81,202 +102,93 @@ module.exports.handler = async function(event, context) {
   return context.succeed(policy.build());
 }
 
-async function handlePatientScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
-  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
-  if(verifiedJWT.body.launch_response_patient){
-    if(scopesArray.includes('patient/Patient.read') || scopesArray.includes('patient/*.read')) {
-      console.log("Allowing GET access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
-      policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
-    }
-    if(scopesArray.includes('patient/Patient.write') || scopesArray.includes('patient/*.write')) {
-      console.log("Allowing POST access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
-      policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
-      policy.allowMethod(AuthPolicy.HttpVerb.PUT, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
-    }
-  }
+async function handlePatientScopes(verifiedJWT, requestMethod, policy, tenantConfig) {
+  //We need to add an allow policy only for the patient id called out in the JWT.
+  console.log("Handling patient scopes.")
+  console.log("Allowing access to: " + "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient)
+  policy.allowMethod(requestMethod, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.launch_response_patient);
 }
 
-async function handleUserScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
+//For user scopes, we're going to follow 1 of 2 paths...
+//If FGA is enabled, we'll perform a relationship check.
+//If FGA is NOT enabled, then we'll just grant access to the value in the fhirUser claim only.
+async function handleUserScopes(verifiedJWT, requestMethod, policy, tenantConfig) {
   console.log("Handling user scopes.")
-  console.log("Requested Patient: " + requestedPatient)
-  console.log("Requested scopes: " + verifiedJWT.body.scope)
-  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
-  //Read access
-  //With FGA, we'll do a relationship lookup
-  //Without FGA, we'll just allow for the user to see themselves (fhirUser claim)
-  if(scopesArray.includes('user/Patient.read') || scopesArray.includes('user/*.read')) {
-    //We need to get the patient id from the request, not from the JWT.
-    if(requestedPatient) {
-      if(tenantConfig.fga_enabled === "true") {
-        console.log("Performing a fine grained access check")
-        console.log("Inbound client: " + verifiedJWT.body.fhirUser)
-        console.log("Patient to access: " + requestedPatient)
-        const auth0fga = new Auth0FgaApi({
-          environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
-          storeId: tenantConfig.fga_store_id,
-          clientId: tenantConfig.fga_client_id,
-          clientSecret: tenantConfig.fga_client_secret
-        });
-        const result = await auth0fga.check({
-          tuple_key: {
-            user: verifiedJWT.body.fhirUser,
-            relation: "can_view",
-            object: "patient:" + requestedPatient
-          }
-        });
-        console.log("FGA Result:")
-        console.log(result)
-        if(result && result.allowed) {
-          console.log("Relationship found!")
-          console.log(result)
-          var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
-          policy.allowMethod(AuthPolicy.HttpVerb.GET, allowedURL);
-        }
-        else {
-          console.log("Fine Grained authz check failed. No access granted.")
-        }
+  if(tenantConfig.fga_enabled === "true") {
+    console.log("Performing a fine grained access check")
+    /*console.log("Inbound client: " + verifiedJWT.body.fhirUser)
+    console.log("Patient to access: " + requestedPatient)
+    const auth0fga = new Auth0FgaApi({
+      environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
+      storeId: tenantConfig.fga_store_id,
+      clientId: tenantConfig.fga_client_id,
+      clientSecret: tenantConfig.fga_client_secret
+    });
+    const result = await auth0fga.check({
+      tuple_key: {
+        user: verifiedJWT.body.fhirUser,
+        relation: "can_view",
+        object: "patient:" + requestedPatient
       }
-      else { //If we don't have FGA turned on then the fhirUser claim must have the patient in it.
-        console.log("Coarse grained user access is configured.  Allowing access to:")
-        console.log("/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.fhirUser)
-        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/" + tenantConfig.id + "/Patient/" + verifiedJWT.body.fhirUser);
-      }
+    });
+    console.log("FGA Result:")
+    console.log(result)
+    if(result && result.allowed) {
+      console.log("Relationship found!")
+      console.log(result)
+      var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
+      policy.allowMethod(AuthPolicy.HttpVerb.GET, allowedURL);
     }
+    else {
+      console.log("Fine Grained authz check failed. No access granted.")
+    }*/
   }
-
-  //write access
-  //With FGA, we'll do a relationship lookup
-  //Without FGA, we'll just allow for the user to see themselves (fhirUser claim)
-  if(scopesArray.includes('user/Patient.write') || scopesArray.includes('user/*.write')) {
-    //We need to get the patient id from the request, not from the JWT.
-    if(requestedPatient) {
-      if(tenantConfig.fga_enabled === "true") {
-        console.log("Performing a fine grained access check")
-        console.log("Inbound client: " + verifiedJWT.body.fhirUser)
-        console.log("Patient to access: " + requestedPatient)
-        const auth0fga = new Auth0FgaApi({
-          environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
-          storeId: tenantConfig.fga_store_id,
-          clientId: tenantConfig.fga_client_id,
-          clientSecret: tenantConfig.fga_client_secret
-        });
-        const result = await auth0fga.check({
-          tuple_key: {
-            user: verifiedJWT.body.fhirUser,
-            relation: "can_write",
-            object: "patient:" + requestedPatient
-          }
-        });
-        console.log("FGA Result:")
-        console.log(result)
-        if(result && result.allowed) {
-          console.log("Relationship found!")
-          console.log(result)
-          var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
-          policy.allowMethod(AuthPolicy.HttpVerb.POST, allowedURL);
-          policy.allowMethod(AuthPolicy.HttpVerb.PUT, allowedURL);
-        }
-        else {
-          console.log("Fine Grained authz check failed. No access granted.")
-        }
-      }
-      else { //If we don't have FGA turned on then the fhirUser claim must have the patient in it.
-        policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/" + verifiedJWT.body.fhirUser);
-        policy.allowMethod(AuthPolicy.HttpVerb.PUT, "/" + tenantConfig.id + "/" + verifiedJWT.body.fhirUser);
-      }
-    }
+  else {
+    console.log("FGA not enabled. Granting access to: " + verifiedJWT.body.fhirUser)
+    policy.allowMethod(requestMethod, "/" + tenantConfig.id + '/' + verifiedJWT.body.fhirUser);
   }
 }
 
-async function handleSystemScopes(verifiedJWT, requestedPatient, policy, tenantConfig) {
-  const scopesArray = Array.isArray(verifiedJWT.body.scope) ? verifiedJWT.body.scope : verifiedJWT.body.scope.split(' ');
-  //If we have system/patient.s (or system/Patient.read in v1), then we allow access to the patient match function.
-  if(scopesArray.includes('system/Patient.read')) {
-    console.log("Adding in the patient match scope.")
-    policy.allowMethod(AuthPolicy.HttpVerb.POST, "/" + tenantConfig.id + "/Patient/*match");
-  }
+//For user scopes, we're going to follow 1 of 2 paths...
+//If FGA is enabled, we'll perform a relationship check.
+//If FGA is NOT enabled, then we'll grant full access to all records.
 
-  //If we have system/Patient.read, then let's do our fine grained authz check.
-  if(scopesArray.includes('system/Patient.read') || scopesArray.includes('system/*.read')) {
+async function handleSystemScopes(verifiedJWT, requestMethod, policy, tenantConfig) {
 
-    if(requestedPatient) {
-      if(tenantConfig.fga_enabled === "true") {
-        console.log("Performing a fine grained access check")
-        console.log("Inbound client: " + verifiedJWT.body.sub)
-        console.log("Patient to access: " + requestedPatient)
-        const auth0fga = new Auth0FgaApi({
-          environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
-          storeId: tenantConfig.fga_store_id,
-          clientId: tenantConfig.fga_client_id,
-          clientSecret: tenantConfig.fga_client_secret
-        });
-
-        const result = await auth0fga.check({
-          tuple_key: {
-            user: verifiedJWT.body.sub,
-            relation: "can_view",
-            object: "patient:" + requestedPatient
-          },
-        });
-
-        if(result && result.allowed) {
-          console.log("Relationship found!")
-          console.log(result)
-          var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
-          policy.allowMethod(AuthPolicy.HttpVerb.GET, allowedURL);
-
-        }
-        else {
-          console.log("Fine Grained authz check failed. No access granted.")
-        }
+  console.log("Handling system scopes.")
+  if(tenantConfig.fga_enabled === "true") {
+    console.log("Performing a fine grained access check")
+    /*console.log("Inbound client: " + verifiedJWT.body.fhirUser)
+    console.log("Patient to access: " + requestedPatient)
+    const auth0fga = new Auth0FgaApi({
+      environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
+      storeId: tenantConfig.fga_store_id,
+      clientId: tenantConfig.fga_client_id,
+      clientSecret: tenantConfig.fga_client_secret
+    });
+    const result = await auth0fga.check({
+      tuple_key: {
+        user: verifiedJWT.body.fhirUser,
+        relation: "can_view",
+        object: "patient:" + requestedPatient
       }
-      else {
-        var allowedURL = "/" + tenantConfig.id + "/Patient/*"
-        policy.allowMethod(AuthPolicy.HttpVerb.GET, allowedURL);
-      }
+    });
+    console.log("FGA Result:")
+    console.log(result)
+    if(result && result.allowed) {
+      console.log("Relationship found!")
+      console.log(result)
+      var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
+      policy.allowMethod(AuthPolicy.HttpVerb.GET, allowedURL);
     }
+    else {
+      console.log("Fine Grained authz check failed. No access granted.")
+    }*/
   }
-
-  if(scopesArray.includes('system/Patient.write') || scopesArray.includes('system/*.write')) {
-
-    if(requestedPatient) {
-      console.log("Performing a fine grained access check")
-      console.log("Inbound client: " + verifiedJWT.body.sub)
-      console.log("Patient to access: " + requestedPatient)
-      if(tenantConfig.fga_enabled === "true") {
-        const auth0fga = new Auth0FgaApi({
-          environment: tenantConfig.fga_environment, // can be "us" (default if not set) for Developer Community Preview or "playground" for the Playground API
-          storeId: tenantConfig.fga_store_id,
-          clientId: tenantConfig.fga_client_id,
-          clientSecret: tenantConfig.fga_client_secret
-        });
-
-        const result = await auth0fga.check({
-          tuple_key: {
-            user: verifiedJWT.body.sub,
-            relation: "can_write",
-            object: "patient:" + requestedPatient
-          },
-        });
-
-        if(result && result.allowed) {
-          console.log("Relationship found!")
-          console.log(result)
-          var allowedURL = "/" + tenantConfig.id + "/Patient/" + requestedPatient
-          policy.allowMethod(AuthPolicy.HttpVerb.POST, allowedURL);
-          policy.allowMethod(AuthPolicy.HttpVerb.PUT, allowedURL);
-
-        }
-        else {
-          console.log("Fine Grained authz check failed. No access granted.")
-        }
-      }
-      else {
-        var allowedURL = "/" + tenantConfig.id + "/Patient/*"
-        policy.allowMethod(AuthPolicy.HttpVerb.POST, allowedURL);
-        policy.allowMethod(AuthPolicy.HttpVerb.PUT, allowedURL);
-      }
-    }
+  else {
+    //This is not really full access, remembering that I already validated the scope<->resourceType + activity mapping.
+    console.log("FGA not enabled. Granting full access to scoped FHIR resource types and activities.")
+    policy.allowMethod(requestMethod, "/" + tenantConfig.id + '/*')
   }
 }
 
