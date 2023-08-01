@@ -10,6 +10,8 @@
     "registration_endpoint":"authz_registration_endpoint_here_if_applicable",
     "keys_endpoint":"authz_keys_endpoint_here",
 
+    "scopes_supported": ["openid", "email", "profile", "phone", "fhirUser", "user/Patient.read", "user/Patient.write", "system/Patient.read", "system/Patient.write"],
+
     "fga_enabled": "true_or_false",
     "fga_environment": "us",
     "fga_store_id": "fga_store_id",
