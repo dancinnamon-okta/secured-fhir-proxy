@@ -27,14 +27,30 @@ provider:
   logs:
     restApi: true
 
+	
+  httpApi:
+    disableDefaultEndpoint: true
+
+## Uncomment if your server is in AWS, and you wish to lock it down to a VPC.
+# Note- this example deployment does not fully manage your VPC configuration in AWS.
+# If you uncomment this, you'll need to decide how your Lambdas will get internet access
+# and also how the Lambdas will access any internal AWS resources.
+#  vpc:
+#    securityGroupIds:
+#      - sg-youridhere
+
+#    subnetIds:
+#      - subnet-youridhere
+
   environment:
     FHIR_BASE_DOMAIN: ${param:FHIR_BASE_DOMAIN}
+    BACKEND_FHIR_SERVICE_URL: ${param:BACKEND_FHIR_SERVICE_URL}
 
 #Lambda functions
 functions:
 ##Authorizer
-  jwtAuthorizer:
-    handler: ${self:provider.name}/authorizer.handler
+  globalFhirAuthorizer:
+    handler: ${self:provider.name}/fhirGlobalAuthorizer.handler
 
 ##METADATA ENDPOINTS
   smart-config-endpoint:
@@ -81,8 +97,6 @@ functions:
               paths:
                 tenantId: true
 
-
-
 #Patient match endpoint
   patient-match-endpoint:
     handler: ${self:provider.name}/match_operation.matchHandler
@@ -92,36 +106,46 @@ functions:
           path: /{tenantId}/Patient/$match
           method: POST
           authorizer:
-            name: jwtAuthorizer
+            name: globalFhirAuthorizer
             resultTtlInSeconds: 0
             type: request
-          cors: false
+          cors: true
           request:
             parameters:
               paths:
                 tenantId: true
 
-#############
-#Proxy back to the real FHIR server.
-#############
+  read-endpoint:
+    handler: ${self:provider.name}/read_operation.readHandler
+    timeout: 30
+    events:
       - http:
-          path: /{tenantId}/{proxy+}
-          method: ANY
+          path: /{tenantId}/{fhirResource}
+          method: GET
           authorizer:
-            name: jwtAuthorizer
+            name: globalFhirAuthorizer
             resultTtlInSeconds: 0
             type: request
-          cors: true
-          integration: http-proxy
+          cors: true 
           request:
-            uri: ${param:BACKEND_FHIR_SERVICE_URL}/{proxy}
             parameters:
               paths:
-                proxy: true
                 tenantId: true
-#################
-#END Proxy
-#################
+                fhirResource: true
+      - http:
+          path: /{tenantId}/{fhirResource}/{proxy+}
+          method: GET
+          authorizer:
+            name: globalFhirAuthorizer
+            resultTtlInSeconds: 0
+            type: request
+          cors: true 
+          request:
+            parameters:
+              paths:
+                tenantId: true
+                fhirResource: true
+                proxy: true
 
 custom:
   customCertificate:
