@@ -47,6 +47,14 @@ function AuthPolicy(principal, awsAccountId, apiOptions) {
   this.version = "2012-10-17";
 
   /**
+   * Other context the authorizer wishes to pass to the downstream lambdas.
+   *
+   * @property context
+   * @type {Object}
+   */
+  this.context = {};
+
+  /**
    * The regular expression used to validate resource paths for the policy
    *
    * @property pathRegex
@@ -297,6 +305,7 @@ AuthPolicy.prototype = (function() {
 
       var policy = {};
       policy.principalId = this.principalId;
+      policy.context = this.context;
       var doc = {};
       doc.Version = this.version;
       doc.Statement = [];

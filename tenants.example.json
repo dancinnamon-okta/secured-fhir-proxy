@@ -12,11 +12,14 @@
 
     "scopes_supported": ["openid", "email", "profile", "phone", "fhirUser", "user/Patient.read", "user/Patient.write", "system/Patient.read", "system/Patient.write"],
 
-    "fga_enabled": "true_or_false",
-    "fga_environment": "us",
-    "fga_store_id": "fga_store_id",
-    "fga_client_id": "fga_client_id",
-    "fga_client_secret": "fga_client_secret",
+    "fga_enabled": "false",
+    "fga_environment": "",
+    "fga_store_id": "",
+    "fga_authz_model_id": "",
+    "fga_token_issuer": "",
+    "fga_api_audience": "",
+    "fga_client_id": "",
+    "fga_client_secret": "",
 
     "udap_enabled": "true_or_false",
     "udap_pki_ca_cert_filename": "ca.crt",
