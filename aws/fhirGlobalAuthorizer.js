@@ -12,7 +12,7 @@
 
 const AuthPolicy = require('./auth-policy');
 const TenantConfig = require('../lib/tenant_config')
-const jwtEndpointProcessor = require('../lib/authorization/jwt_endpoint_processor')
+const jwtEndpointProcessor = require('../lib/authorization/global/jwt_endpoint_processor')
 
 module.exports.handler = async function(event, context) {
   //Parse out the inbound request to get what we need for validation and output.
