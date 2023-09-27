@@ -52,15 +52,20 @@ module.exports.handler = async function(event, context) {
     console.log('Running in single patient mode.')
     policy.context.authorizationMode = 'patient'
     policy.context.fhirAuthorizationPrincipal = verifiedJWT.body.launch_response_patient ? `Patient/${verifiedJWT.body.launch_response_patient}` : ''
+    policy.context.externalAuthorizationPrincipal =  '' //No fine grained access for patient mode.
   }
   else if (scopesArray.filter(scope => scope.startsWith('user/')).length > 0) {
     console.log('Running in multi-patient mode.')
     policy.context.authorizationMode = 'user'
-    policy.context.fhirAuthorizationPrincipal = verifiedJWT.body.fhirUser ? verifiedJWT.body.fhirUser : ''
+    policy.context.fhirAuthorizationPrincipal = verifiedJWT.body.fhirUser ? verifiedJWT.body.fhirUser : '' //Used for coarse grained access
+    policy.context.externalAuthorizationPrincipal =  `user:${verifiedJWT.body.sub}` //Used for fine grained access
+
   }
   else {
     console.log('Running in system mode.')
     policy.context.authorizationMode = 'system'
+    policy.context.fhirAuthorizationPrincipal = verifiedJWT.body.fhirUser ? verifiedJWT.body.fhirUser : '' //Used for coarse grained access
+    policy.context.externalAuthorizationPrincipal = `system:${verifiedJWT.body.sub}` //Used for fine grained access
   }
 
   return context.succeed(policy.build());
