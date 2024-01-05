@@ -1,0 +1,266 @@
+[
+    {
+        "resourceType": "Account",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "AdverseEvent",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "AllergyIntolerance",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Appointment",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "AppointmentResponse",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "AuditEvent",
+        "linkPaths": ["agent.who.reference", "entity.what.reference"]
+    },
+    {
+        "resourceType": "Basic",
+        "linkPaths": ["subject.reference", "author.reference"]
+    },
+    {
+        "resourceType": "BodyStructure",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "CarePlan",
+        "linkPaths": ["subject.reference", "activity.detail.performer.reference"]
+    },
+    {
+        "resourceType": "CareTeam",
+        "linkPaths": ["subject.reference", "participant.member.reference"]
+    },
+    {
+        "resourceType": "ChargeItem",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Claim",
+        "linkPaths": ["patient.reference", "payee.party.reference"]
+    },
+    {
+        "resourceType": "ClaimResponse",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "ClinicalImpression",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Communication",
+        "linkPaths": ["subject.reference", "sender.reference", "recipient.reference"]
+    },
+    {
+        "resourceType": "CommunicationRequest",
+        "linkPaths": ["subject.reference", "sender.reference", "recipient.reference", "requester.reference"]
+    },
+    {
+        "resourceType": "Composition",
+        "linkPaths": ["subject.reference", "author.reference", "attester.party.reference"]
+    },
+    {
+        "resourceType": "Condition",
+        "linkPaths": ["subject.reference", "asserter.reference"]
+    },
+    {
+        "resourceType": "Consent",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "Coverage",
+        "linkPaths": ["policyHolder.reference", "subscriber.reference", "beneficiary.reference", "payor.reference"]
+    },
+    {
+        "resourceType": "CoverageEligibilityRequest",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "CoverageEligibilityResponse",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "DetectedIssue",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "DeviceRequest",
+        "linkPaths": ["subject.reference", "performer.reference"]
+    },
+    {
+        "resourceType": "DeviceUseStatement",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "DiagnosticReport",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "DocumentManifest",
+        "linkPaths": ["subject.reference", "author.reference", "recipient.reference"]
+    },
+    {
+        "resourceType": "DocumentReference",
+        "linkPaths": ["subject.reference", "author.reference"]
+    },
+    {
+        "resourceType": "Encounter",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "EnrollmentRequest",
+        "linkPaths": ["candidate.reference"]
+    },
+    {
+        "resourceType": "EpisodeOfCare",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "ExplanationOfBenefit",
+        "linkPaths": ["patient.reference", "payee.party.reference"]
+    },
+    {
+        "resourceType": "FamilyMemberHistory",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "Flag",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Goal",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Group",
+        "linkPaths": ["member.entity.reference"]
+    },
+    {
+        "resourceType": "ImagingStudy",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Immunization",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "ImmunizationEvaluation",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "ImmunizationRecommendation",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "Invoice",
+        "linkPaths": ["subject.reference", "recipient.reference"]
+    },
+    {
+        "resourceType": "List",
+        "linkPaths": ["subject.reference", "source.reference"]
+    },
+    {
+        "resourceType": "MeasureReport",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Media",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "MedicationAdministration",
+        "linkPaths": ["subject.reference", "performer.actor.reference"]
+    },
+    {
+        "resourceType": "MedicationDispense",
+        "linkPaths": ["subject.reference", "receiver.reference"]
+    },
+    {
+        "resourceType": "MedicationRequest",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "MedicationStatement",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "MolecularSequence",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "NutritionOrder",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "Observation",
+        "linkPaths": ["subject.reference", "performer.reference"]
+    },
+    {
+        "resourceType": "Patient",
+        "linkPaths": ["link.other.reference"]
+    },
+    {
+        "resourceType": "Person",
+        "linkPaths": ["link.target.reference"]
+    },
+    {
+        "resourceType": "Procedure",
+        "linkPaths": ["subject.reference", "performer.actor.reference"]
+    },
+    {
+        "resourceType": "Provenance",
+        "linkPaths": ["target.reference"]
+    },
+    {
+        "resourceType": "QuestionnaireResponse",
+        "linkPaths": ["subject.reference", "author.reference"]
+    },
+    {
+        "resourceType": "RelatedPerson",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "RequestGroup",
+        "linkPaths": ["subject.reference", "action.participant.reference"]
+    },
+    {
+        "resourceType": "ResearchSubject",
+        "linkPaths": ["individual.reference"]
+    },
+    {
+        "resourceType": "RiskAssessment",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "Schedule",
+        "linkPaths": ["actor.reference"]
+    },
+    {
+        "resourceType": "ServiceRequest",
+        "linkPaths": ["subject.reference", "performer.reference"]
+    },
+    {
+        "resourceType": "Specimen",
+        "linkPaths": ["subject.reference"]
+    },
+    {
+        "resourceType": "SupplyDelivery",
+        "linkPaths": ["patient.reference"]
+    },
+    {
+        "resourceType": "SupplyRequest",
+        "linkPaths": ["deliverTo.reference"]
+    },
+    {
+        "resourceType": "VisionPrescription",
+        "linkPaths": ["patient.reference"]
+    }
+]
