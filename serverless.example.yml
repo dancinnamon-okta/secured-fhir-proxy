@@ -18,6 +18,9 @@ params:
     #Backend fhir service base FHIR_SERVICE_URL
     BACKEND_FHIR_SERVICE_URL: http://your_fhir_base_url_here
 
+    #Backend signing algorithm for jwt
+    BACKEND_SIGNING_ALGORITHM: RS256
+
 ##Shouldn't have to touch anything below this line!##
 provider:
   name: aws
@@ -27,7 +30,6 @@ provider:
   logs:
     restApi: true
 
-	
   httpApi:
     disableDefaultEndpoint: true
 
