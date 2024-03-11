@@ -29,7 +29,7 @@ module.exports.handler = async function(event, context) {
 
   //Details about the request.
   const httpMethod = event.requestContext.httpMethod
-  const fhirResourceType = event.pathParameters.fhirResource
+  const fhirResourceType = event.resource == "/{tenantId}/Patient/$match" ? "Patient" : event.pathParameters.fhirResource
 
   const coarseEndpointResults = await jwtEndpointProcessor.authorizeJwtProtectedEndpoint(tenantConfig, httpMethod, event.headers, fhirResourceType)
 
