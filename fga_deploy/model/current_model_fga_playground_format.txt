@@ -1,0 +1,25 @@
+model
+  schema 1.1
+
+type Patient
+  relations
+    define assigned_organization: [Organization]
+    define authorized_representative: [user]
+    define can_adjust_consent: owner or authorized_representative
+    define can_view: owner or third_party_org_consent or authorized_representative or can_view from assigned_organization
+    define owner: [user]
+    define third_party_org_consent: [system]
+
+type group
+  relations
+    define member: [user]
+
+type system
+
+type user
+
+type Organization
+  relations
+    define can_view: viewers or can_view from parent_organization
+    define parent_organization: [Organization]
+    define viewers: [group#member]

@@ -1,0 +1,234 @@
+{
+    "schema_version": "1.1",
+    "type_definitions": [
+        {
+            "type": "Patient",
+            "relations": {
+                "assigned_organization": {
+                    "this": {}
+                },
+                "authorized_representative": {
+                    "this": {}
+                },
+                "can_adjust_consent": {
+                    "union": {
+                        "child": [
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "owner"
+                                }
+                            },
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "authorized_representative"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "can_view": {
+                    "union": {
+                        "child": [
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "owner"
+                                }
+                            },
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "third_party_org_consent"
+                                }
+                            },
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "authorized_representative"
+                                }
+                            },
+                            {
+                                "tupleToUserset": {
+                                    "tupleset": {
+                                        "object": "",
+                                        "relation": "assigned_organization"
+                                    },
+                                    "computedUserset": {
+                                        "object": "",
+                                        "relation": "can_view"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "owner": {
+                    "this": {}
+                },
+                "third_party_org_consent": {
+                    "this": {}
+                }
+            },
+            "metadata": {
+                "relations": {
+                    "assigned_organization": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "Organization",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "authorized_representative": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "user",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "can_adjust_consent": {
+                        "directly_related_user_types": [],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "can_view": {
+                        "directly_related_user_types": [],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "owner": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "user",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "third_party_org_consent": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "system",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    }
+                },
+                "module": "",
+                "source_info": null
+            }
+        },
+        {
+            "type": "group",
+            "relations": {
+                "member": {
+                    "this": {}
+                }
+            },
+            "metadata": {
+                "relations": {
+                    "member": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "user",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    }
+                },
+                "module": "",
+                "source_info": null
+            }
+        },
+        {
+            "type": "system",
+            "relations": {},
+            "metadata": null
+        },
+        {
+            "type": "user",
+            "relations": {},
+            "metadata": null
+        },
+        {
+            "type": "Organization",
+            "relations": {
+                "can_view": {
+                    "union": {
+                        "child": [
+                            {
+                                "computedUserset": {
+                                    "object": "",
+                                    "relation": "viewers"
+                                }
+                            },
+                            {
+                                "tupleToUserset": {
+                                    "tupleset": {
+                                        "object": "",
+                                        "relation": "parent_organization"
+                                    },
+                                    "computedUserset": {
+                                        "object": "",
+                                        "relation": "can_view"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "parent_organization": {
+                    "this": {}
+                },
+                "viewers": {
+                    "this": {}
+                }
+            },
+            "metadata": {
+                "relations": {
+                    "can_view": {
+                        "directly_related_user_types": [],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "parent_organization": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "Organization",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    },
+                    "viewers": {
+                        "directly_related_user_types": [
+                            {
+                                "type": "group",
+                                "relation": "member",
+                                "condition": ""
+                            }
+                        ],
+                        "module": "",
+                        "source_info": null
+                    }
+                },
+                "module": "",
+                "source_info": null
+            }
+        }
+    ],
+    "conditions": {}
+}
