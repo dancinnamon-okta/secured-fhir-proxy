@@ -29,7 +29,11 @@ module.exports.handlers = {
         state.populateOrgWithFHIRPatients = await utils.askSpecific(rl, 'Would you like to insert relationships for existing FHIR patients? (y/n)', ['y','n'])
         state.distributePatientsThroughoutOrg = await utils.askSpecific(rl, 'Would you like to randomly associate the patients throughout the organization? (y/n)', ['y','n'])
 
-        state.sampleUser = await utils.askPattern(rl, 'If you would like to assign a test user with global access, type in their user id here.', /.+/)
+        state.createSampleUser = await utils.askSpecific(rl, 'Would you like to create a sample user? (y/n)', ['y','n'])
+
+        if(state.createSampleUser == 'y') {
+            state.sampleUser = await utils.askPattern(rl, 'If you would like to assign a test user with global access, type in their user id here.', /.+/)
+        }
 
         if(state.populateOrgWithFHIRPatients == 'y') {
             state.backendFhirUrl = await utils.askPattern(rl, 'What is the backend FHIR URL for your proxy?', /.+/)
@@ -190,7 +194,7 @@ module.exports.handlers = {
     },
 
     handle_populate_sample_user: async (rl, state) => {
-        if(state.sampleUser) {
+        if(state.createSampleUser == 'y') {
             //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
             const fgaClient = new OpenFgaClient({
                 apiScheme: 'https',
@@ -244,6 +248,6 @@ module.exports.handlers = {
             console.log(`Step 3- Populate patients. Skipped...`)
         }
 
-        console.log(`Step 4- Populate sample user... ${state.sampleUser ? 'Success': 'Skipped...'}`)
+        console.log(`Step 4- Populate sample user... ${state.createSampleUser == 'y' ? 'Success': 'Skipped...'}`)
     }
 }

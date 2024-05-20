@@ -12,7 +12,7 @@ type Patient
 
 type group
   relations
-    define member: [user]
+    define member: [user, system]
 
 type system
 
