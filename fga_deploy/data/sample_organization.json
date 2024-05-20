@@ -1,0 +1,72 @@
+[
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:radiology"
+    },
+    {
+        "user": "group:global_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:atko_health"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:icu"
+    },
+    {
+        "user": "group:icu_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:icu"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:internal_medicine"
+    },
+    {
+        "user": "group:internal_medicine_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:internal_medicine"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:nicu"
+    },
+    {
+        "user": "group:nicu_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:nicu"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:obgyn"
+    },
+    {
+        "user": "group:obgyn_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:obgyn"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:neurology"
+    },
+    {
+        "user": "group:neurology_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:neurology"
+    },
+    {
+        "user": "Organization:atko_health",
+        "relation": "parent_organization",
+        "object": "Organization:oncology"
+    },
+    {
+        "user": "group:oncology_care_team#member",
+        "relation": "viewers",
+        "object": "Organization:oncology"
+    }
+]
