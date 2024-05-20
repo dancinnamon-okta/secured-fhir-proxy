@@ -142,6 +142,10 @@
                             {
                                 "type": "user",
                                 "condition": ""
+                            },
+                            {
+                                "type": "system",
+                                "condition": ""
                             }
                         ],
                         "module": "",

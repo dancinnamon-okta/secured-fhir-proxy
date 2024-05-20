@@ -35,6 +35,7 @@ var state = {
     "fgaClientId": "",
     "fgaClientSecret": "",
     "deployTestOrg": "",
+    "createSampleUser": "",
     "sampleUser": "",
     "populateOrgWithFHIRPatients": "",
     "distributePatientsThroughoutOrg": "",
