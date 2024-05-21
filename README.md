@@ -9,13 +9,13 @@ The goal of this repository is to create a "multi-tenant" FHIR proxy that enable
 Each "tenant" in this proxy can be configured to support different security features such as:
 * Support for a completely seperate authorization server per tenant
 * Ability to support SMART v1 and SMART v2 authorization models
-* Ability to optionally support UDAP
-* Ability to optionally support Fine grained access control using https://fga.dev
+* Ability to optionally support [UDAP](https://build.fhir.org/ig/HL7/fhir-udap-security-ig/)
+* Ability to optionally support [Fine grained access control](https://fga.dev)
 
-## Authorization Model
+## Authorization Processing
 Another primary goal of this repository is to serve as a reference implementation for properly securing FHIR resources using OAuth2 access tokens. It proposes both coarse grained as well as fine grained access control strategies.  
 
-### Authorization Overview
+### Authorization Strategy Overview
 The following block diagram outlines the strategy that every FHIR request goes through:
 
 ![High Level Architecture](./doc/high_level_authorization_flow.png)
@@ -79,8 +79,48 @@ Steps taken:
 
 It should be noted that the FGA processor also works in system/* mode- enabling partial access in B2B, machine to machine processes driven by the external fine grained access platform.
 
+## Fine Grained Access Model
+In the previous section it was called out that fine grained, individual patient-level access is determined by a dedicated FGA platform.
+
+An example FGA model is included with this proxy deployment. As depicted below, there are 2 ways access to a given patient's data is granted:
+- Direct assignment/consent: This method is for patients to designate authorized representatives, or for direct third party access to be granted, as might be the case in some sort of data exchange.
+
+- Organizational assignment: This method will generally apply to practitioner access to patient records. Practitioners will statically or dynamically be associated with 1-N levels of the healthcare organization. Additionally, the patient will also statically or dynamically be associated 1-N levels of the organization. In this approach the organizational hierarchy will be used to enable practitioner access to a subset of the patients that they are responsible for.
+
+![Sample Model](./doc/fga_sample_model.png)
+
+## A word about searching
+Likely the toughest aspect of asserting access control comes into play when implementing a security-aware search mechanism. This repository attempts to solve this problem in a simple, yet scalable way, but does not cover all use cases. Further research is required to enhance this functionality.
+
+Currently the following behavior is supported for searching:
+
+**When coarse grained access strategy is applied**
+* patient/* scopes are granted: 
+
+Searches of all patient-related resources are supported. This proxy will obtain the active patient from the inbound access_token, and hard-code it's ID into the search criteria- ensuring that all results are scoped to the single patient.
+
+* system/* scopes are granted: 
+
+In the included coarse grained strategy, no constraints are added, and the token may access the allowed resource types for all patients. No filtering occurs.
+
+* user/* scopes are granted:
+
+Until a more scalable strategy is determined, searches for user/* scoped use cases are currently not supported.
+
+**When fine grained access strategy is applied**
+* patient/* scopes are granted:
+
+In this instance the CGA processor is used, and searches are supported as described above.
+
+* user/* and system/* scopes are granted:
+
+In both of these scenarios, the FGA system is first consulted to get a list of patients that the security principal has access to- using the [list-objects](https://openfga.dev/docs/getting-started/perform-list-objects) API. The result from this API is a list of all patient ids the security principal may access. This list is then hard-coded onto the inbound FHIR search parameters. 
+
+*FGA Limitations and Known Issues for the current search implementation*
+
+The strategy chosen is outlined [here](https://openfga.dev/docs/interacting/search-with-permissions#option-3-build-a-list-of-ids-then-search). It has the benefit of being really simple, so long as the security principal doesn't have access to a very large patient set.  Currently FGA will return a maximum of 1000 patients. Additional strategies are being developed that will better suit a very large data set.
+
 ## Installation
-A more complete onboarding guide is a work in progress- however here are some general guidelines for deploying this reference implementation.
 
 ### Pre-Steps
  - Determine what domain name you'll be using for your FHIR service
@@ -105,3 +145,41 @@ A more complete onboarding guide is a work in progress- however here are some ge
 ### Step 3- Deploy
 - Deploy the FHIR service: `sls deploy --verbose -c serverless.yml`
 - Test the FHIR service by visiting: https://fhir.yourdomain.tld/.well-known/smart-configuration
+
+## Enable FGA (Optional)
+An automated deploy script, a sample model, and a sample healthcare organizational hierarchy is available in the fga_deploy folder of this repository if you wish to experiment with fine grained access on your FHIR API. Before this script can be run, you'll need to perform a few steps on the FGA platform.
+
+### Step 1- Signup for a free FGA environment
+Go to [fga.dev](https://fga.dev) and sign up for a free FGA tenant.
+
+### Step 2- Create a new store to house the FGA model and relationships
+One logged into your environment, create a new store as shown. Name it whatever you want:
+![New Store](./doc/new_store.png)
+
+### Step 3- Create a new OAuth2 client for your FGA system
+In this step we're going to generate API access credentials so both the deploy script, as well as the proxy, can access your FGA system via API.
+![New Client](./doc/create_client.png)
+![New Client 2](./doc/create_client_2.png)
+
+**When complete, you'll be shown a screen like the one below.  copy/paste these values! You'll need them when running the deploy script.**
+![New Client 3](./doc/create_client_3.png)
+
+### Step 4- Run the automated FGA deploy script
+To run the deploy script, run the following commands in a terminal:
+
+`cd fga_deploy`
+
+`npm install`
+
+`node deploy.js`
+
+The deployment script will guide you through the whole process. It begins by asking you a series of questions to understand what you'd like it to do.  Then it will run through a series of deployment steps to get everything configured. The script performs the following steps:
+
+* Uploads the included sample FGA model to your FGA environment (Optional)
+* Uploads the sample organizational hierarchy to your FGA environment (Optional)
+* Queries ALL patients from your backend FHIR service, and inserts their patient IDs into FGA, associating/relating them to various places within the sample organization (Optional).
+* Inserts a sample user relationship, and associates them at the highest level in the sample organization (Optional).
+* Updates your tenants.json to enable FGA for the chosen FHIR tenant.
+
+### Step 5- Redeploy the FHIR proxy
+Once all 4 steps have been run, your tenants.json file will be updated, and FGA will be enabled for the chosen FHIR tenant.
