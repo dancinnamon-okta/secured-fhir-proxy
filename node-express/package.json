@@ -1,0 +1,22 @@
+{
+  "name": "secured-fhir-proxy-express",
+  "version": "1.0.0",
+  "description": "This module is used when a developer wishes to host this solution locally, or within a docker container. It is not used when deployed in a cloud/serverless mode.",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dancinnamon-okta/secured-fhir-proxy.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dancinnamon-okta/secured-fhir-proxy/issues"
+  },
+  "homepage": "https://github.com/dancinnamon-okta/secured-fhir-proxy#readme",
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
