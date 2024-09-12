@@ -1,0 +1,15 @@
+version: '3.1'
+services:
+  proxy:
+    build: 
+      context: ../
+      dockerfile: ./docker/proxy/Dockerfile
+    environment:
+      LAMBDA_TASK_ROOT: "/opt/app"
+      BACKEND_SIGNING_ALGORITHM: "RS256"
+      BACKEND_FHIR_SERVICE_URL: "https://hapi.fhir.org/baseR4"
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      FHIR_BASE_DOMAIN: "fhir.hostname.this.service.is.listening.on"
+
+    ports:
+     - "3000:3000"
