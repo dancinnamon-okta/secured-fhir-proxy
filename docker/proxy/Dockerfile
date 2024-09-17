@@ -5,9 +5,7 @@ WORKDIR /opt
 ADD https://github.com/Evernorth/hl7-fhir-udap-common/archive/refs/heads/main.zip ./
 COPY ./node-express ./app/node-express
 COPY ./lib ./app/lib
-COPY ./udap_pki ./app/udap_pki
 COPY ./package.json ./app
-COPY ./tenants.json ./app
 
 RUN unzip main.zip
 RUN mv hl7-fhir-udap-common-main hl7-fhir-udap-common
