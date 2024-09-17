@@ -43,7 +43,7 @@ module.exports.handlers = {
     },
 
     handle_validate_tenant_config: async (rl, state) => {
-        let tenantConfig = JSON.parse(fs.readFileSync("../tenants.json")).filter(config => config.id === state.proxyTenant)
+        let tenantConfig = JSON.parse(fs.readFileSync(process.env.TENANTS_CONFIG_FILE)).filter(config => config.id === state.proxyTenant)
         const configIndex = tenantConfig.findIndex(config => config.id === state.proxyTenant)
         if(tenantConfig.length > 0) {
             console.log("Tenant Config verified...")
