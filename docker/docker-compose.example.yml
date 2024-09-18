@@ -1,4 +1,12 @@
 version: '3.1'
+
+networks:
+  openfga:
+
+configs:
+  hapi:
+     file: ./fhir/hapi.application.yaml
+
 services:
   proxy:
     build: 
@@ -6,10 +14,135 @@ services:
       dockerfile: ./docker/proxy/Dockerfile
     environment:
       LAMBDA_TASK_ROOT: "/opt/app"
+      CONFIG_PATH: "/opt/app/config"
       BACKEND_SIGNING_ALGORITHM: "RS256"
-      BACKEND_FHIR_SERVICE_URL: "https://hapi.fhir.org/baseR4"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
-      FHIR_BASE_DOMAIN: "fhir.hostname.this.service.is.listening.on"
+      FHIR_BASE_DOMAIN: "the.domain.used.to.validate.audience"
 
+    container_name: proxy
+    volumes:
+      - ./proxy/config:/opt/app/config
     ports:
-     - "3000:3000"
+     - "9090:3000"
+    networks:
+      - openfga
+
+  fhir:
+    image: hapiproject/hapi:latest
+    container_name: fhir
+    networks:
+      - openfga
+    ports:
+     - "9091:8080" #Also expose the backend service directly for now for troubleshooting.
+
+    configs:
+      - source: hapi
+        target: /app/config/application.yaml
+
+    depends_on:
+        fhir_db:
+            condition: service_healthy
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    networks:
+      - openfga
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_DATABASE=openfga
+    healthcheck:
+      test: ["CMD", 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p$$MYSQL_ROOT_PASSWORD' ]
+      timeout: 20s
+      retries: 5
+
+  fhir_db:
+    image: postgres
+    container_name: fhir_db
+    networks:
+      - openfga
+
+    environment:
+      - POSTGRES_PASSWORD=example
+      - POSTGRES_USER=fhir
+      - POSTGRES_DB=fhir
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U fhir" ]
+      timeout: 20s
+      retries: 5
+
+  migrate:
+    depends_on:
+        mysql:
+            condition: service_healthy
+    image: openfga/openfga:latest
+    container_name: migrate
+    command: migrate
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=mysql
+      - OPENFGA_DATASTORE_URI=root:secret@tcp(mysql:3306)/openfga?parseTime=true
+    networks:
+      - openfga
+
+  openfga:
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    image: openfga/openfga:latest
+    container_name: openfga
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=mysql
+      - OPENFGA_DATASTORE_URI=root:secret@tcp(mysql:3306)/openfga?parseTime=true
+      - OPENFGA_LOG_FORMAT=json
+      - OPENFGA_CORS_ALLOWED_ORIGINS=*
+    command: run
+    networks:
+      - openfga
+    ports:
+      # Dont change these if you're using the playground! The playground hard codes CORS for these ports.
+      # Needed for the http server
+      - "8080:8080"
+      # Needed for the grpc server (if used)
+      - "8081:8081"
+      # Needed for the playground (Do not enable in prod!)
+      - "3000:3000"
+
+## These containers are only meant to be used to generate patient information.
+## They don't stay running, nor do they start automatically.
+
+##How to use:
+#docker compose build synthea_builder
+#docker compose run --rm synthea_builder
+# (within container) /bin/bash ./generate_upload.sh
+  synthea_builder:
+    build: 
+      context: ../
+      dockerfile: ./docker/synthea/Dockerfile
+    platform: linux/amd64
+    depends_on: 
+      - fhir
+    profiles: ["sample_data_build"]
+    container_name: synthea_builder
+    networks:
+      - openfga
+
+#docker compose build fga_builder
+#docker compose run --rm fga_builder
+# (within container) cd fga_deploy
+# (within container) node deploy.js
+  fga_builder:
+    build: 
+      context: ../
+      dockerfile: ./docker/fga_deploy/Dockerfile
+    depends_on: 
+      - fhir
+      - openfga
+    profiles: ["sample_data_build"]
+    container_name: fga_builder
+    environment:
+      TENANTS_CONFIG_FILE: /opt/config/tenants.json
+    volumes:
+      - ./proxy/config:/opt/config
+    networks:
+      - openfga
