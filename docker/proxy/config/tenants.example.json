@@ -1,7 +1,7 @@
 [
   {
     "id": "clouddemo",
-    "backend_fhir_service_url": "https://hapi.fhir.org/baseR4",
+    "backend_fhir_service_url": "https://hapi.fhir/org/baseR4",
     "issuer":"your_authz_issuer_uri_here",
     "authorize_endpoint":"authz_authorize_endpoint_here",
     "token_endpoint":"authz_token_endpoint_here",
@@ -43,7 +43,7 @@
     "keys_endpoint": "authz_keys_endpoint_here",
 
     "scopes_supported": ["openid","email","profile","udap","phone","fhirUser","offline_access","user/Patient.read","user/Patient.write","user/AllergyIntolerance.read","user/Condition.read","system/Condition.read","system/Patient.read","system/Patient.write","system/AllergyIntolerance.read","system/Observation.read"],
-
+    
     "fga_enabled": "true_or_false",
     "fga_type": "docker",
     "fga_environment": "openfga:8080",
