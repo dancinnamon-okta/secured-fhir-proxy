@@ -17,12 +17,15 @@ module.exports.handlers = {
         }
         else {
             console.log('For help with the following questions, please refer to: https://docs.fga.dev/integration/getting-your-api-keys')
-            state.fgaEnvironment = await utils.askPattern(rl, 'What FGA environment are you connecting to? (Use api.us1.fga.dev for free trial)', /.+/)
+            state.fgaType = await utils.askSpecific(rl, 'What type of FGA environment are you connecting to? (docker/cloud)', ['docker','cloud'])
+            state.fgaEnvironment = await utils.askPattern(rl, 'What FGA hostname are you connecting to? (Use "api.us1.fga.dev" for free trial, or "openfga" for the docker example)', /.+/)
             state.fgaStoreId = await utils.askPattern(rl, 'What FGA Store ID are you going to maintain (get the store ID from the FGA console)?', /.+/)
-            state.fgaTokenIssuer = await utils.askPattern(rl, 'What is your FGA token Issuer? (Use fga.us.auth0.com for free trial)', /.+/)
-            state.fgaApiAudience = await utils.askPattern(rl, 'What is your FGA token Audience? (Use https://api.us1.fga.dev/ for free trial)', /.+/)
-            state.fgaClientId = await utils.askPattern(rl, 'What is your FGA API client id?', /.+/)
-            state.fgaClientSecret = await utils.askPattern(rl, 'What is your FGA API client secret?', /.+/)
+            if(state.fgaType == 'cloud') {
+                state.fgaTokenIssuer = await utils.askPattern(rl, 'What is your FGA token Issuer? (Use fga.us.auth0.com for free trial)', /.+/)
+                state.fgaApiAudience = await utils.askPattern(rl, 'What is your FGA token Audience? (Use https://api.us1.fga.dev/ for free trial)', /.+/)
+                state.fgaClientId = await utils.askPattern(rl, 'What is your FGA API client id?', /.+/)
+                state.fgaClientSecret = await utils.askPattern(rl, 'What is your FGA API client secret?', /.+/)
+            }
         }
 
         state.deployTestOrg = await utils.askSpecific(rl, 'Would you like a sample healthcare organization hierarchy populated? (y/n)', ['y','n'])
@@ -43,13 +46,13 @@ module.exports.handlers = {
     },
 
     handle_validate_tenant_config: async (rl, state) => {
-        let tenantConfig = JSON.parse(fs.readFileSync("../tenants.json")).filter(config => config.id === state.proxyTenant)
+        let tenantConfig = JSON.parse(fs.readFileSync(process.env.TENANTS_CONFIG_FILE)).filter(config => config.id === state.proxyTenant)
         const configIndex = tenantConfig.findIndex(config => config.id === state.proxyTenant)
         if(tenantConfig.length > 0) {
             console.log("Tenant Config verified...")
             if(state.deployNewStore == 'existing') {
                 console.log('User chose to maintain an existing FGA store- loading FGA details from tenants.json...')
-                
+                state.fgaType = tenantConfig[configIndex].fga_type
                 state.fgaEnvironment = tenantConfig[configIndex].fga_environment
                 state.fgaTokenIssuer = tenantConfig[configIndex].fga_token_issuer
                 state.fgaApiAudience = tenantConfig[configIndex].fga_api_audience
@@ -71,24 +74,11 @@ module.exports.handlers = {
         }
 
         //Load up our existing tenant config so we can update it.
-        let tenantConfig = JSON.parse(fs.readFileSync("../tenants.json"))
+        let tenantConfig = JSON.parse(fs.readFileSync(process.env.TENANTS_CONFIG_FILE))
         const configIndex = tenantConfig.findIndex(config => config.id === state.proxyTenant)
 
         //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
-        const fgaClient = new OpenFgaClient({
-            apiScheme: 'https',
-            apiHost: state.fgaEnvironment,
-            storeId: state.fgaStoreId,
-            credentials: {
-              method: CredentialsMethod.ClientCredentials,
-              config: {
-                apiTokenIssuer: state.fgaTokenIssuer,
-                apiAudience: state.fgaApiAudience,
-                clientId: state.fgaClientId,
-                clientSecret: state.fgaClientSecret
-              },
-            }
-        });
+        const fgaClient = getSDKConfig(state);
         const newModel = JSON.parse(fs.readFileSync("./model/current_model.json"))
 
         const modelResult = await fgaClient.writeAuthorizationModel(newModel)
@@ -96,6 +86,7 @@ module.exports.handlers = {
         console.log(`Successfully created model. ID: ${state.fgaModelId}`)
         
         console.log('Updating your tenant config...')
+        tenantConfig[configIndex].fga_type = state.fgaType
         tenantConfig[configIndex].fga_environment = state.fgaEnvironment
         tenantConfig[configIndex].fga_token_issuer = state.fgaTokenIssuer
         tenantConfig[configIndex].fga_api_audience = state.fgaApiAudience
@@ -105,7 +96,7 @@ module.exports.handlers = {
         tenantConfig[configIndex].fga_client_secret = state.fgaClientSecret
         tenantConfig[configIndex].fga_enabled = 'true'
 
-        fs.writeFileSync("../tenants.json", JSON.stringify(tenantConfig, null, 2))
+        fs.writeFileSync(process.env.TENANTS_CONFIG_FILE, JSON.stringify(tenantConfig, null, 2))
 
         console.log('Model updated and saved in your tenant config file!')
     },
@@ -113,20 +104,7 @@ module.exports.handlers = {
     handle_populate_org_tuples: async (rl, state) => {
         if(state.deployTestOrg == 'y') {
             //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
-            const fgaClient = new OpenFgaClient({
-                apiScheme: 'https',
-                apiHost: state.fgaEnvironment,
-                storeId: state.fgaStoreId,
-                credentials: {
-                    method: CredentialsMethod.ClientCredentials,
-                    config: {
-                        apiTokenIssuer: state.fgaTokenIssuer,
-                        apiAudience: state.fgaApiAudience,
-                        clientId: state.fgaClientId,
-                        clientSecret: state.fgaClientSecret
-                    },
-                }
-            });
+            const fgaClient = getSDKConfig(state);
 
             const sampleOrganization = JSON.parse(fs.readFileSync("./data/sample_organization.json"))
             const orgResult = await fgaClient.writeTuples(sampleOrganization, {authorizationModelId: state.fgaModelId})
@@ -140,20 +118,7 @@ module.exports.handlers = {
 
     handle_populate_patients: async (rl, state) => {
         if(state.populateOrgWithFHIRPatients == 'y') {
-            const fgaClient = new OpenFgaClient({
-                apiScheme: 'https',
-                apiHost: state.fgaEnvironment,
-                storeId: state.fgaStoreId,
-                credentials: {
-                    method: CredentialsMethod.ClientCredentials,
-                    config: {
-                        apiTokenIssuer: state.fgaTokenIssuer,
-                        apiAudience: state.fgaApiAudience,
-                        clientId: state.fgaClientId,
-                        clientSecret: state.fgaClientSecret
-                    },
-                }
-            });
+            const fgaClient =getSDKConfig(state);
 
             var patientSearchUrl = `${state.backendFhirUrl}/Patient?_count=40`
             var pageCount = 0
@@ -168,21 +133,26 @@ module.exports.handlers = {
                     'maxRedirects': 0,
                 }
                 var fhirResult = await axios.request(request)
-                const sampleOrganization = JSON.parse(fs.readFileSync("./data/sample_organization.json"))
-                const patientIds = fhirResult.data.entry.map(patient => { return {
-                    "user": (state.distributePatientsThroughoutOrg == 'n' ? 'Organization:atko_health' : sampleOrganization[Math.floor(Math.random() * sampleOrganization.length)].object),
-                    "relation": "assigned_organization",
-                    "object": `Patient:${patient.resource.id}`
-                }})
 
-                const tupleResult = await fgaClient.writeTuples(patientIds, {authorizationModelId: state.fgaModelId})
-                console.log(tupleResult)
-                state.totalPatientsInserted += patientIds.length
-                const nextLink = fhirResult.data.link.filter((link) => link.relation == 'next');
+                if(fhirResult.data.entry) {
+                    const sampleOrganization = JSON.parse(fs.readFileSync("./data/sample_organization.json"))
+                    const patientIds = fhirResult.data.entry.map(patient => { return {
+                        "user": (state.distributePatientsThroughoutOrg == 'n' ? 'Organization:atko_health' : sampleOrganization[Math.floor(Math.random() * sampleOrganization.length)].object),
+                        "relation": "assigned_organization",
+                        "object": `Patient:${patient.resource.id}`
+                    }})
 
-                if(nextLink.length == 1) {
-                    patientSearchUrl = nextLink[0].url
-                }
+                    const tupleResult = await fgaClient.writeTuples(patientIds, {authorizationModelId: state.fgaModelId})
+                    console.log(tupleResult)
+                    state.totalPatientsInserted += patientIds.length
+                    const nextLink = fhirResult.data.link.filter((link) => link.relation == 'next');
+                    if(nextLink.length == 1) {
+                        patientSearchUrl = nextLink[0].url
+                    }
+                    else {
+                        patientSearchUrl = null
+                    }
+                } 
                 else {
                     patientSearchUrl = null
                 }
@@ -196,20 +166,7 @@ module.exports.handlers = {
     handle_populate_sample_user: async (rl, state) => {
         if(state.createSampleUser == 'y') {
             //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
-            const fgaClient = new OpenFgaClient({
-                apiScheme: 'https',
-                apiHost: state.fgaEnvironment,
-                storeId: state.fgaStoreId,
-                credentials: {
-                    method: CredentialsMethod.ClientCredentials,
-                    config: {
-                        apiTokenIssuer: state.fgaTokenIssuer,
-                        apiAudience: state.fgaApiAudience,
-                        clientId: state.fgaClientId,
-                        clientSecret: state.fgaClientSecret
-                    },
-                }
-            });
+            const fgaClient = getSDKConfig(state);
 
             const sampleUserAssignment = [
                 {
@@ -250,4 +207,25 @@ module.exports.handlers = {
 
         console.log(`Step 4- Populate sample user... ${state.createSampleUser == 'y' ? 'Success': 'Skipped...'}`)
     }
+}
+function getSDKConfig(state) {
+    var fgaClientConfig = {
+        apiScheme: state.fgaType == 'cloud' ? 'https' : 'http',
+        apiHost: state.fgaEnvironment,
+        storeId: state.fgaStoreId
+    }
+
+    if(state.fgaType == 'cloud') {
+        fgaClientConfig.credentials = {
+            method: CredentialsMethod.ClientCredentials,
+            config: {
+                apiTokenIssuer: state.fgaTokenIssuer,
+                apiAudience: state.fgaApiAudience,
+                clientId: state.fgaClientId,
+                clientSecret: state.fgaClientSecret
+            }
+        }
+    }
+    //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
+    return new OpenFgaClient(fgaClientConfig);
 }

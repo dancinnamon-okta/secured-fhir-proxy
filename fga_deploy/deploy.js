@@ -27,6 +27,7 @@ const finalState = STATE_FINISHED
 var state = {
     "currentStep": initialState,
     "proxyTenant": "",
+    "fgaType": "",
     "fgaEnvironment": "",
     "fgaStoreId": "",
     "fgaModelId": "",

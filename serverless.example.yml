@@ -16,6 +16,7 @@ params:
     FHIR_BASE_TLD: your.tld.
 
     #Backend fhir service base FHIR_SERVICE_URL
+    #Note- this is the default and can be overridden at the tenant level.
     BACKEND_FHIR_SERVICE_URL: http://your_fhir_base_url_here
 
     #Backend signing algorithm for jwt
@@ -45,7 +46,7 @@ provider:
 #      - subnet-youridhere
 
   environment:
-    FHIR_BASE_DOMAIN: ${param:FHIR_BASE_DOMAIN}
+    FHIR_BASE_URL: https://${param:FHIR_BASE_DOMAIN}
     BACKEND_FHIR_SERVICE_URL: ${param:BACKEND_FHIR_SERVICE_URL}
     BACKEND_SIGNING_ALGORITHM: ${param:BACKEND_SIGNING_ALGORITHM}
 

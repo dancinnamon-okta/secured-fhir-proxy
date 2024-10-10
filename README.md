@@ -4,6 +4,16 @@ A reference implementation of a multi-tenant, secured FHIR API.
 ## Overview
 The goal of this repository is to create a "multi-tenant" FHIR proxy that enables the ability to quickly and efficiently research new and varied healthcare interoperability security standards such as UDAP, SMART launch framework, and the FAST Identity implementation guide. This proxy will sit in front of an existing, non-secured FHIR service. You may provide this FHIR service yourself, or https://hapi.fhir.org is also an excellent, publicly available resource.
 
+### New as of October 2024! Dockerized Version
+It is now a lot easier to setup this reference implementation! A dockerized version has been included that automatically stands up the following components:
+* The proxy itself- hosted on an nginx web server.
+* An instance of the HAPI fhir API.
+* An instance of [OpenFGA](https://openfga.dev)
+* A container for generating sample patients with the synthea generator.
+* A container for loading a sample FGA model and patient relationships into the OpenFGA container.
+
+Please see here for instructions on setting up this repository within docker.
+
 ***Note- this proxy currently only supports read/search/$match operations.***
 
 Each "tenant" in this proxy can be configured to support different security features such as:
@@ -120,7 +130,118 @@ In both of these scenarios, the FGA system is first consulted to get a list of p
 
 The strategy chosen is outlined [here](https://openfga.dev/docs/interacting/search-with-permissions#option-3-build-a-list-of-ids-then-search). It has the benefit of being really simple, so long as the security principal doesn't have access to a very large patient set.  Currently FGA will return a maximum of 1000 patients. Additional strategies are being developed that will better suit a very large data set.
 
-## Installation
+## Tenant Configuration
+This project is designed to have as many tenants as you'd like. Each tenant is accessed by a "tenant prefix" in the FHIR URL, and should be included in your base FHIR url that you supply to clients.  For example, the included "demo" tenant is available at https://fhir.yourdomain.tld/demo, and you'd access a patient record at https://fhir.yourdomain.tld/demo/Patient/patient_id
+
+Each tenant can point to it's own backend FHIR server, can use it's own authorization service, and can have it's own authorization policy.
+
+The tenant configuration file is:
+* tenants.json for cloud deployment
+* docker/proxy/config/tenants.json for local docker deployment
+
+Each location has a tenants.example.json to use as a reference.
+### Tenant Configuration Settings
+**id (required)**
+
+This is the name of the tenant, and will be used in the FHIR URL to access the tenant.
+
+**backend_fhir_service_url (Optional - if not provided, fallback is to use the value specified in the BACKEND_FHIR_SERVICE_URL environment variable)**
+
+The URL of the actual FHIR service we're proxying to.
+
+**issuer (required)**
+
+This is an identifier of your authorization service that you're using to secure this tenant. This is used when validating inbound access tokens. We also need it to render various metadata endpoints such as smart_configuration.
+
+**authorize_endpoint (required)**
+
+This is the URL of your authorization service's OAuth2 /authorize endpoint. We need this to render various metadata endpoints such as smart_configuration.
+
+**token_endpoint (required)**
+
+This is the URL of your authorization service's OAuth2 /token endpoint. We need this to render various metadata endpoints such as smart_configuration.
+
+**keys_endpoint (required)**
+
+This is the URL of your authorization service's /keys endpoint (JWKS endpoint) that you're using to secure this tenant. This is used when validating inbound access tokens. We also need it to render various metadata endpoints such as smart_configuration.
+
+**revoke_endpoint (Optional)**
+
+This is the URL of your authorization service's OAuth2 /revoke endpoint. We need this to render various metadata endpoints such as smart_configuration.
+
+**introspect_endpoint (Optional)**
+
+This is the URL of your authorization service's OAuth2 /introspect endpoint. We need this to render various metadata endpoints such as smart_configuration.
+
+**registration_endpoint (Optional)**
+
+This is the URL of your authorization service's OAuth2 /register endpoint. We need this to render various metadata endpoints such as smart_configuration.
+
+**scopes_supported (Required)**
+
+Provide a list of scopes you wish for your server to advertise and support. Ensure that these scopes are also defined in your authorization service.
+
+**fga_enabled (Required- true or false)**
+
+Determines whether the tenant will apply coarse grained access policy, or fine grained access policy.
+
+**fga_type (Required - cloud or docker)**
+
+If FGA is enabled, this defines if the FGA environment will be an OpenFGA deployment running locally, or whether it will be using one of Okta's FGA SaaS tenants.
+
+**fga_environment (Required)**
+
+If FGA is enabled, this defines the FGA endpoint to connect to.
+
+**fga_store_id (Required)**
+
+If FGA is enabled, this defines which FGA store is going to be used to secure this tenant.
+
+**fga_authz_model_id (Required)**
+
+If FGA is enabled, this defines which FGA model is going to be used to secure this tenant.
+
+**fga_token_issuer (Required ONLY if fga_type = 'cloud')**
+
+If FGA is enabled, this defines which authorization service is to be used to authenticate into the FGA API. This is not applicable for local docker. For local docker deployments this should be left blank!
+
+**fga_api_audience (Required ONLY if fga_type = 'cloud')**
+
+If FGA is enabled, this defines which authorization service is to be used to authenticate into the FGA API. This is not applicable for local docker. For local docker deployments this should be left blank!
+
+**fga_client_id (Required ONLY if fga_type = 'cloud')**
+
+If FGA is enabled, this defines which API credentials to be used to authenticate into the FGA API. This is not applicable for local docker. For local docker deployments this should be left blank!
+
+**fga_client_secret (Required ONLY if fga_type = 'cloud')**
+
+If FGA is enabled, this defines which API credentials to be used to authenticate into the FGA API. This is not applicable for local docker. For local docker deployments this should be left blank!
+
+**udap_enabled (Required - true or false)**
+
+If true, this tenant will advertise UDAP support (well-known/udap).
+
+**udap_pki_ca_cert_filename (Required if udap is enabled)**
+
+Used when rendering the signed metadata portion of well-known/udap. This sets the trust anchor and community that the server is in. This path is a relative path starting from the udap_pki folder (docker/proxy/config/udap_pki folder).
+
+**udap_pki_cert_filename (Required if udap is enabled)**
+
+Used when rendering the signed metadata portion of well-known/udap. This sets the server's identity within the community that the server is in. This path is a relative path starting from the udap_pki folder (docker/proxy/config/udap_pki folder). It is expected that this file is a PKCS12 encrypted file.
+
+**udap_pki_cert_filename_pwd (Required if udap is enabled)**
+
+Used when rendering the signed metadata portion of well-known/udap. This is the encryption key so the server can unlock the PKCS12 file used to assert the server's identity within the community.
+
+**udap_server_san (Required if udap is enabled)**
+
+This is a string value that designates the id of the server within the udap community. This value must also exist within the certificate found at "udap_pki_cert_filename".
+
+**patient/practitioner/relatedperson_compartment_file (NA):
+
+These files are used by the authorization processor to determine how to find the applicable patient/practitioner/relatedPerson for a given FHIR resource. You generally shouldn't need to touch these.
+
+## Installation - Cloud (AWS Infrastructure)
 
 ### Pre-Steps
  - Determine what domain name you'll be using for your FHIR service
@@ -139,8 +260,6 @@ The strategy chosen is outlined [here](https://openfga.dev/docs/interacting/sear
 - Copy tenants.example.json to tenants.json
 - Add/Update the "demo" tenant
 - Fill in values as appropriate
-
-*Note: This project is designed to have as many tenants as you'd like. Each tenant is accessed by a "tenant prefix" in the FHIR URL, and should be included in your base FHIR url that you supply to clients.  For example, the included "demo" tenant is available at https://fhir.yourdomain.tld/demo, and you'd access a patient record at https://fhir.yourdomain.tld/demo/Patient/patient_id*
 
 ### Step 3- Deploy
 - Deploy the FHIR service: `sls deploy --verbose -c serverless.yml`
@@ -183,3 +302,70 @@ The deployment script will guide you through the whole process. It begins by ask
 
 ### Step 5- Redeploy the FHIR proxy
 Once all 4 steps have been run, your tenants.json file will be updated, and FGA will be enabled for the chosen FHIR tenant.
+
+## Installation - Docker
+
+### Pre-Steps
+ - Determine what you'll be using for your authorization service, and have those details ready.
+ - Ensure docker is installed on your machine.
+ - Download this repository into a folder on your machine
+
+ ### Step 1- Build the containers
+ In this step we're going to construct all of the containers needed to run this solution.
+ `cd docker`
+
+ `docker compose build`
+
+ ### Step 2- Proxy tenant configuration
+ Before running the proxy, we'll want to configure the tenants that the proxy will host.
+ 
+ `cd docker/proxy/config`
+ `cp tenants.example.json tenants.json`
+
+Add/update information within tenants.json as appropriate.
+
+*Note: The entire proxy/config folder is referenced within the container as a volume- so any changes/updates to the tenants.json will immediately be available within the container. No container rebuild will be necessary.*
+
+### Step 3- Start!
+To start the service, run:
+
+`cd docker`
+
+`docker compose up`
+
+At this point, you should be able to access all services.
+
+### Step 4 (as desired) - Populate sample patient data
+As an optional step, a temporary container has been included that can be used to generate 100 patient's worth synthea data, and insert it into the included FHIR service.
+
+To perform this step- run the following commands **note- it takes a while**:
+
+`docker compose build synthea_builder`
+
+`docker compose run --rm synthea_builder`
+
+That second command will drop your command line within the temporary container.
+
+WITHIN THE CONTAINER - run:
+`/bin/bash ./generate_upload.sh`
+
+### Step 5 (as desired) - Populate FGA model and platform
+As an optional step, a temporary container has been included that can be used to populate a sample FGA model and data structure, as outlined in this README.
+
+This deploy script is the same one found above in this README.
+
+To run this deploy script within the local container environment, run the following commands:
+
+`docker compose build fga_builder`
+
+
+`docker compose run --rm fga_builder`
+
+That second command will drop your command line within the temporary container.
+
+WITHIN THE CONTAINER - run:
+
+`cd fga_deploy`
+
+`node deploy.js`
+
