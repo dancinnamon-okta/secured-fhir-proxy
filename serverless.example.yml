@@ -45,7 +45,7 @@ provider:
 #      - subnet-youridhere
 
   environment:
-    FHIR_BASE_DOMAIN: ${param:FHIR_BASE_DOMAIN}
+    FHIR_BASE_URL: https://${param:FHIR_BASE_DOMAIN}
     BACKEND_FHIR_SERVICE_URL: ${param:BACKEND_FHIR_SERVICE_URL}
     BACKEND_SIGNING_ALGORITHM: ${param:BACKEND_SIGNING_ALGORITHM}
 

@@ -1,37 +1,5 @@
 [
   {
-    "id": "clouddemo",
-    "backend_fhir_service_url": "https://hapi.fhir/org/baseR4",
-    "issuer":"your_authz_issuer_uri_here",
-    "authorize_endpoint":"authz_authorize_endpoint_here",
-    "token_endpoint":"authz_token_endpoint_here",
-    "revoke_endpoint":"authz_revoke_endpoint_here",
-    "introspect_endpoint":"authz_introspect_endpoint_here_if_applicable",
-    "registration_endpoint":"authz_registration_endpoint_here_if_applicable",
-    "keys_endpoint":"authz_keys_endpoint_here",
-
-    "scopes_supported": ["openid", "email", "profile", "phone", "fhirUser", "user/Patient.read", "user/Patient.write", "system/Patient.read", "system/Patient.write"],
-
-    "fga_enabled": "true_or_false",
-    "fga_type": "cloud",
-    "fga_environment": "api.us1.fga.dev",
-    "fga_store_id": "your_store_id_here",
-    "fga_authz_model_id": "your_model_id_here",
-    "fga_token_issuer": "fga.us.auth0.com",
-    "fga_api_audience": "https://api.us1.fga.dev/",
-    "fga_client_id": "your_fga_client_id",
-    "fga_client_secret": "your_fga_client_secret",
-
-    "udap_enabled": "true_or_false",
-    "udap_pki_ca_cert_filename": "ca.crt",
-    "udap_pki_cert_filename": "server.p12",
-    "udap_pki_cert_filename_pwd": "pw to p12 file",
-    "udap_server_san" : "url to use for this server - must match base server url and be in cert SAN array",
-    "patient_compartment_file": "lib/authorization/resource_level/compartments/r4/patient_compartment.json",
-    "practitioner_compartment_file": "lib/authorization/resource_level/compartments/r4/practitioner_compartment.json",
-    "related_person_compartment_file": "lib/authorization/resource_level/compartments/r4/relatedperson_compartment.json"
-  },
-  {
     "id": "localdockerdemo",
     "backend_fhir_service_url": "http://fhir:8080/fhir",
     "issuer": "your_authz_issuer_uri_here",
@@ -54,11 +22,11 @@
     "fga_client_id": "",
     "fga_client_secret": "",
 
-    "udap_enabled": "false",
+    "udap_enabled": "true_or_false",
     "udap_pki_ca_cert_filename": "ca.crt",
-    "udap_pki_cert_filename": "udap-sandbox-okta.p12",
-    "udap_pki_cert_filename_pwd": "7xgw1avh",
-    "udap_server_san": "https://securefhir.zimt.work/udap-public",
+    "udap_pki_cert_filename": "server.p12",
+    "udap_pki_cert_filename_pwd": "pw to p12 file",
+    "udap_server_san" : "url to use for this server - must match base server url and be in cert SAN array",
     "patient_compartment_file": "lib/authorization/resource_level/compartments/r4/patient_compartment.json",
     "practitioner_compartment_file": "lib/authorization/resource_level/compartments/r4/practitioner_compartment.json",
     "related_person_compartment_file": "lib/authorization/resource_level/compartments/r4/relatedperson_compartment.json"
