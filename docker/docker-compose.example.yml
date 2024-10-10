@@ -17,7 +17,7 @@ services:
       CONFIG_PATH: "/opt/app/config"
       BACKEND_SIGNING_ALGORITHM: "RS256"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
-      FHIR_BASE_DOMAIN: "the.domain.used.to.validate.audience"
+      FHIR_BASE_URL: "http://localhost:9090"
 
     container_name: proxy
     volumes:
