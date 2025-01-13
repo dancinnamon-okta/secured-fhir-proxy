@@ -8,7 +8,7 @@ const MAX_PAGE_COUNT = 100
 module.exports.handlers = {
     handle_deploy_questionnaire: async (rl, state) => {
         console.log('Collecting general configuration information...')
-        state.proxyTenant = await utils.askPattern(rl, 'Which proxy tenant (from your tenants.json file) would you like to maintain? (Example: tenantA)', /.+/)
+        state.proxyTenant = await utils.askPattern(rl, 'Which proxy tenant (from your tenants.json file) would you like to maintain? (Example: localdockerdemo)', /.+/)
 
         state.deployNewStore = await utils.askSpecific(rl, 'Would you like to start with a new FGA system, or use an existing one associated with your proxy tenant? (new/existing)', ['new','existing'])
 
@@ -18,9 +18,10 @@ module.exports.handlers = {
         else {
             console.log('For help with the following questions, please refer to: https://docs.fga.dev/integration/getting-your-api-keys')
             state.fgaType = await utils.askSpecific(rl, 'What type of FGA environment are you connecting to? (docker/cloud)', ['docker','cloud'])
-            state.fgaEnvironment = await utils.askPattern(rl, 'What FGA hostname are you connecting to? (Use "api.us1.fga.dev" for free trial, or "openfga" for the docker example)', /.+/)
-            state.fgaStoreId = await utils.askPattern(rl, 'What FGA Store ID are you going to maintain (get the store ID from the FGA console)?', /.+/)
+            state.fgaEnvironment = await utils.askPattern(rl, 'What FGA hostname are you connecting to? (Use "api.us1.fga.dev" for free trial, or "openfga:8080" for the docker example)', /.+/)
+            state.fgaStoreName = await utils.askPattern(rl, 'What would you like to name your new FGA system?', /.+/)
             if(state.fgaType == 'cloud') {
+                state.fgaStoreId = await utils.askPattern(rl, 'What FGA Store ID are you going to maintain (get the store ID from the FGA console)?', /.+/)
                 state.fgaTokenIssuer = await utils.askPattern(rl, 'What is your FGA token Issuer? (Use fga.us.auth0.com for free trial)', /.+/)
                 state.fgaApiAudience = await utils.askPattern(rl, 'What is your FGA token Audience? (Use https://api.us1.fga.dev/ for free trial)', /.+/)
                 state.fgaClientId = await utils.askPattern(rl, 'What is your FGA API client id?', /.+/)
@@ -39,7 +40,7 @@ module.exports.handlers = {
         }
 
         if(state.populateOrgWithFHIRPatients == 'y') {
-            state.backendFhirUrl = await utils.askPattern(rl, 'What is the backend FHIR URL for your proxy?', /.+/)
+            state.backendFhirUrl = await utils.askPattern(rl, 'What is the backend FHIR URL for your proxy? (If using the local docker example it is: http://fhir:8080/fhir)', /.+/)
         }
         console.log('All set! Current configuration:')
         console.log(state)
@@ -80,6 +81,12 @@ module.exports.handlers = {
         //At this point our state variables has everything populated, either from existing tenant, or from questionnaire.
         const fgaClient = getSDKConfig(state);
         const newModel = JSON.parse(fs.readFileSync("./model/current_model.json"))
+
+        const newStore = await fgaClient.createStore({
+            name: state.fgaStoreName
+        })
+        state.fgaStoreId = newStore.id
+        fgaClient.storeId = newStore.id
 
         const modelResult = await fgaClient.writeAuthorizationModel(newModel)
         state.fgaModelId = modelResult.authorization_model_id

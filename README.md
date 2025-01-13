@@ -12,7 +12,12 @@ It is now a lot easier to setup this reference implementation! A dockerized vers
 * A container for generating sample patients with the synthea generator.
 * A container for loading a sample FGA model and patient relationships into the OpenFGA container.
 
-Please see here for instructions on setting up this repository within docker.
+Localhost ports used by Docker:
+* http://localhost:9091 - unsecured FHIR service for testing/debugging purposes.
+* http://localhost:9090 - secured FHIR service that uses OAuth2 + FGA for securing access to FHIR resources.
+* http://localhost:3000/playground - OpenFGA Playground - this is where you can look at your FGA model, and maintain relationships.
+
+Please see below for instructions on setting up this repository within docker.
 
 ***Note- this proxy currently only supports read/search/$match operations.***
 
@@ -305,6 +310,7 @@ Once all 4 steps have been run, your tenants.json file will be updated, and FGA 
 
 ## Installation - Docker
 
+
 ### Pre-Steps
  - Determine what you'll be using for your authorization service, and have those details ready.
  - Ensure docker is installed on your machine.
@@ -313,6 +319,8 @@ Once all 4 steps have been run, your tenants.json file will be updated, and FGA 
  ### Step 1- Build the containers
  In this step we're going to construct all of the containers needed to run this solution.
  `cd docker`
+
+ `cp docker-compose.dockerdemo.yml docker-compose.yml`
 
  `docker compose build`
 
@@ -334,6 +342,11 @@ To start the service, run:
 `docker compose up`
 
 At this point, you should be able to access all services.
+
+Localhost ports used by Docker:
+* http://localhost:9091 - unsecured FHIR service for testing/debugging purposes.
+* http://localhost:9090/localdockerdemo - secured FHIR service that uses OAuth2 + FGA for securing access to FHIR resources.
+* http://localhost:3000/playground - OpenFGA Playground - this is where you can look at your FGA model, and maintain relationships.
 
 ### Step 4 (as desired) - Populate sample patient data
 As an optional step, a temporary container has been included that can be used to generate 100 patient's worth synthea data, and insert it into the included FHIR service.
