@@ -28,13 +28,26 @@ module.exports.legacyMetadataHandler = async (event, context) => {
 }
 
 module.exports.udapConfigHandler = async (event, context) => {
-	var udapConfigResult = await metadataLib.udapConfigHandler(event.pathParameters.tenantId)
-	return {
-		statusCode: 200,
-		body: JSON.stringify(udapConfigResult),
-		headers: {
-			'Access-Control-Allow-Origin': '*', // CORS
-			'Access-Control-Allow-Credentials': false // Required for cookies, authorization headers with HTTPS
+	const community = event.queryStringParameters ? event.queryStringParameters.community : null
+	var udapConfigResult = await metadataLib.udapConfigHandler(event.pathParameters.tenantId, community)
+	if(udapConfigResult) {
+		return {
+			statusCode: 200,
+			body: JSON.stringify(udapConfigResult),
+			headers: {
+				'Access-Control-Allow-Origin': '*', // CORS
+				'Access-Control-Allow-Credentials': false // Required for cookies, authorization headers with HTTPS
+			}
+		}
+	}
+	else  { //If we don't belong to the community requested, then return a 204 no content.
+		return {
+			statusCode: 204,
+			body: '',
+			headers: {
+				'Access-Control-Allow-Origin': '*', // CORS
+				'Access-Control-Allow-Credentials': false // Required for cookies, authorization headers with HTTPS
+			}
 		}
 	}
 }
