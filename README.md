@@ -17,7 +17,7 @@ Localhost ports used by Docker:
 * http://localhost:9090 - secured FHIR service that uses OAuth2 + FGA for securing access to FHIR resources.
 * http://localhost:3000/playground - OpenFGA Playground - this is where you can look at your FGA model, and maintain relationships.
 
-Please see below for instructions on setting up this repository within docker.
+Please see [here](https://github.com/dancinnamon-okta/secured-fhir-proxy#installation---docker) for instructions on setting up this repository within docker.
 
 ***Note- this proxy currently only supports read/search/$match operations.***
 
