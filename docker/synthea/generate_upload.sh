@@ -1,5 +1,5 @@
 #!/bin/bash
-NUMBER_RECORDS=100
+NUMBER_RECORDS=10
 rm -rf /opt/output
 echo "Generating $NUMBER_RECORDS records."
 java -Djava.security.egd=file:/dev/./urandom -jar /opt/synthea-with-dependencies.jar -s $RANDOM -c /opt/synthea.properties -p $NUMBER_RECORDS "Minnesota" "Minneapolis"

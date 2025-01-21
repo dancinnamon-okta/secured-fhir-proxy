@@ -12,21 +12,21 @@
 
     "scopes_supported": ["openid","email","profile","udap","phone","fhirUser","offline_access","user/Patient.read","user/Patient.write","user/AllergyIntolerance.read","user/Condition.read","system/Condition.read","system/Patient.read","system/Patient.write","system/AllergyIntolerance.read","system/Observation.read"],
     
-    "fga_enabled": "true_or_false",
+    "fga_enabled": "true",
     "fga_type": "docker",
     "fga_environment": "openfga:8080",
-    "fga_store_id": "your_store_id_here",
-    "fga_authz_model_id": "your_model_id_here",
+    "fga_store_id": "",
+    "fga_authz_model_id": "",
     "fga_token_issuer": "",
     "fga_api_audience": "",
     "fga_client_id": "",
     "fga_client_secret": "",
 
     "udap_enabled": "true_or_false",
-    "udap_pki_ca_cert_filename": "ca.crt",
-    "udap_pki_cert_filename": "server.p12",
-    "udap_pki_cert_filename_pwd": "pw to p12 file",
-    "udap_server_san" : "url to use for this server - must match base server url and be in cert SAN array",
+    "udap_pki_ca_cert_filename": "ca.crt in udap_pki folder",
+    "udap_pki_cert_filename": "server.p12 in udap_pki folder",
+    "udap_pki_cert_filename_pwd": "pw to server.p12 file",
+    "udap_server_san" : "http://localhost:9090/localdockerdemo",
     "patient_compartment_file": "lib/authorization/resource_level/compartments/r4/patient_compartment.json",
     "practitioner_compartment_file": "lib/authorization/resource_level/compartments/r4/practitioner_compartment.json",
     "related_person_compartment_file": "lib/authorization/resource_level/compartments/r4/relatedperson_compartment.json"

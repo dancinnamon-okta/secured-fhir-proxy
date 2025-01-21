@@ -27,6 +27,22 @@
     "udap_pki_cert_filename": "server.p12",
     "udap_pki_cert_filename_pwd": "pw to p12 file",
     "udap_server_san" : "url to use for this server - must match base server url and be in cert SAN array",
+    "udap_additional_communities": [
+      {
+        "uri": "community_name",
+        "udap_pki_ca_cert_filename": "path_to_trust_anchor_file",
+        "udap_pki_cert_filename": "path_to_server_p12_file",
+        "udap_pki_cert_filename_pwd": "pw_to_server_p12_file",
+        "udap_server_san": "san of your server",
+        "issuer": "issuer that will be trusted - overrides default value",
+        "authorize_endpoint": "authorize endpoint for issuer - overrides default value",
+        "token_endpoint": "token endpoint for issuer - overrides default value",
+        "revoke_endpoint": "revoke endpoint for issuer - overrides default value",
+        "introspect_endpoint": "introspect endpoint for issuer - overrides default value",
+        "registration_endpoint": "registration endpoint for issuer - overrides default value",
+        "keys_endpoint": "keys endpoint for issuer - overrides default value"
+      }
+    ],
     "patient_compartment_file": "lib/authorization/resource_level/compartments/r4/patient_compartment.json",
     "practitioner_compartment_file": "lib/authorization/resource_level/compartments/r4/practitioner_compartment.json",
     "related_person_compartment_file": "lib/authorization/resource_level/compartments/r4/relatedperson_compartment.json"
