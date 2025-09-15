@@ -22,7 +22,7 @@ module.exports.connect = (app) => {
 		var legacyConfigResult = await metadataLib.legacyMetadataHandler(req.params.tenantId)
 		res.set('Access-Control-Allow-Origin', '*');
 		res.set('Access-Control-Allow-Credentials', false);
-		res.status(200).send(JSON.stringify(legacyConfigResult));
+		res.status(200).send(JSON.stringify(legacyConfigResult.body));
 	});
 	
 	app.get('/:tenantId/.well-known/udap', async (req, res) => {

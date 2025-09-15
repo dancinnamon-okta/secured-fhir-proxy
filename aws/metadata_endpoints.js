@@ -18,8 +18,8 @@ module.exports.smartConfigHandler = async (event, context) => {
 module.exports.legacyMetadataHandler = async (event, context) => {
 	var legacyConfigResult = await metadataLib.legacyMetadataHandler(event.pathParameters.tenantId)
 	return {
-		statusCode: 200,
-		body: JSON.stringify(legacyConfigResult),
+		statusCode: legacyConfigResult.statusCode,
+		body: JSON.stringify(legacyConfigResult.body),
 		headers: {
 			'Access-Control-Allow-Origin': '*', // CORS
 			'Access-Control-Allow-Credentials': false // Required for cookies, authorization headers with HTTPS
