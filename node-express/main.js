@@ -3,6 +3,7 @@ const metadataEndpoint = require('./metadata_endpoints')
 const readEndpoint = require('./read_operation')
 const searchEndpoint = require('./search_operation')
 const matchEndpoint = require('./match_operation')
+const mcpEndpoint = require('./mcp_endpoint')
 
 const app = express();
 
@@ -14,10 +15,12 @@ app.use((req, res, next) => {
   next();
 });
 
+mcpEndpoint.connect(app);
 metadataEndpoint.connect(app);
 readEndpoint.connect(app);
 searchEndpoint.connect(app);
 matchEndpoint.connect(app);
+
 
 app.listen(3000, () => {
   console.log('Server listening on port 3000');

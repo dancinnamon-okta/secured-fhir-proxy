@@ -31,4 +31,11 @@ module.exports.connect = (app) => {
 		res.set('Access-Control-Allow-Credentials', false);
 		res.status(200).send(JSON.stringify(udapConfigResult));
 	});
+
+	app.get('/.well-known/oauth-protected-resource/:tenantId/mcp', async (req, res) => {
+		var mcpConfigResult = await metadataLib.mcpConfigHandler(req, req.params.tenantId)
+		res.set('Access-Control-Allow-Origin', '*');
+		res.set('Access-Control-Allow-Credentials', false);
+		res.status(200).send(JSON.stringify(mcpConfigResult));
+	});
 }
