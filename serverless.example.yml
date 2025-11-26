@@ -89,6 +89,18 @@ functions:
               paths:
                 tenantId: true
 
+  mcp-protected-resource-endpoint:
+    handler: ${self:provider.name}/metadata_endpoints.mcpMetadataHandler
+    events:
+      - http:
+          path: /.well-known/oauth-protected-resource/{tenantId}/mcp
+          method: GET
+          cors: true
+          request:
+            parameters:
+              paths:
+                tenantId: true
+
   udap-config-endpoint:
     handler: ${self:provider.name}/metadata_endpoints.udapConfigHandler
     events:

@@ -16,7 +16,7 @@ module.exports.smartConfigHandler = async (event, context) => {
 }
 
 module.exports.mcpMetadataHandler = async (event, context) => {
-	var mcpConfigResult = await metadataLib.mcpConfigHandler(event.pathParameters.tenantId, `https://${process.env.FHIR_BASE_URL}${event.path}`)
+	var mcpConfigResult = await metadataLib.mcpConfigHandler(event.pathParameters.tenantId, process.env.FHIR_BASE_URL)
 	return {
 		statusCode: 200,
 		body: JSON.stringify(mcpConfigResult),
