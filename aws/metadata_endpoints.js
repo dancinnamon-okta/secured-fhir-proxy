@@ -15,6 +15,18 @@ module.exports.smartConfigHandler = async (event, context) => {
 	}
 }
 
+module.exports.mcpMetadataHandler = async (event, context) => {
+	var mcpConfigResult = await metadataLib.mcpConfigHandler(event.pathParameters.tenantId, `https://${process.env.FHIR_BASE_URL}${event.path}`)
+	return {
+		statusCode: 200,
+		body: JSON.stringify(mcpConfigResult),
+		headers: {
+			'Access-Control-Allow-Origin': '*', // CORS
+			'Access-Control-Allow-Credentials': false // Required for cookies, authorization headers with HTTPS
+		}
+	}
+}
+
 module.exports.legacyMetadataHandler = async (event, context) => {
 	var legacyConfigResult = await metadataLib.legacyMetadataHandler(event.pathParameters.tenantId)
 	return {
