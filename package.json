@@ -3,6 +3,7 @@
   "description": "A reference implementation of a SMART authorized FHIR API",
   "version": "0.0.1",
   "dependencies": {
+    "@codegenie/serverless-express": "^4.17.0",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "@openfga/sdk": "^0.2.8",
     "axios": "^0.21.4",

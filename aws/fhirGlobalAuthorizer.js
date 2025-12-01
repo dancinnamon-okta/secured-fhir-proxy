@@ -10,6 +10,7 @@
 //This method will not do any record-level access control. Only matching fhirResource and action.
 //All record level access will occur as we process the data.
 
+//TODO: Should the core logic be seperated out into lib?
 const AuthPolicy = require('./auth-policy');
 const TenantConfig = require('../lib/tenant_config')
 const jwtEndpointProcessor = require('../lib/authorization/global/jwt_endpoint_processor')
